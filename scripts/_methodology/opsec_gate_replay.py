@@ -8,12 +8,12 @@ cleaned up in finally)."""
 import os, sys, json, shutil, importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
-MODPATH = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "dapphunt", "wallet_test", "opsec_preflight.py")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+MODPATH = os.path.join(ROOT, "scripts", "dapphunt", "wallet_test", "opsec_preflight.py")
+SESSIONS = os.path.join(ROOT, "sessions")
 
 def _load(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -24,7 +24,7 @@ mod = _load("opsec_preflight", MODPATH)
 # ISOLATION from the real bug-bounty-toolkit/opsec_baseline.json: point load_baseline() at a
 # guaranteed-nonexistent path -> baseline is empty -> cases 1-13 behave exactly as before the baseline
 # feature (full config, nothing mixed in). Cases 14* use THEIR OWN temporary baseline.
-os.environ["OPSEC_BASELINE_PATH"] = os.path.join(ROOT, "bug-bounty-toolkit", "_no_such_baseline_ZZ.json")
+os.environ["OPSEC_BASELINE_PATH"] = os.path.join(ROOT, "_no_such_baseline_ZZ.json")
 
 SLUG = "opsectest-Q7"          # unique slug -> does not collide with any real target session
 SESS = os.path.join(SESSIONS, SLUG)
@@ -235,7 +235,7 @@ try:
         check("case14f preflight without _baseline takes statics from the env file -> ok True", r14f.ok is True,
               repr(getattr(r14f, "failed_checks", None)))
     finally:
-        os.environ["OPSEC_BASELINE_PATH"] = _saved_env or os.path.join(ROOT, "bug-bounty-toolkit", "_no_such_baseline_ZZ.json")
+        os.environ["OPSEC_BASELINE_PATH"] = _saved_env or os.path.join(ROOT, "_no_such_baseline_ZZ.json")
         if os.path.isfile(_bl_path):
             os.remove(_bl_path)
 

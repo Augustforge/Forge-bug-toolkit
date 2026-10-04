@@ -2,6 +2,13 @@
 """Selftest для secret_validate.py — БЕЗ реальных сетевых запросов (HTTP-слой инъектируется моком).
 Доказывает: fail-closed (без allow_live молчит), kind→provider маппинг, live/dead/scope-парсинг,
 broad-scope→scope_unrestricted, Slack ok-json класс, AWS root-guard, schema-полнота, detectability-тег."""
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 

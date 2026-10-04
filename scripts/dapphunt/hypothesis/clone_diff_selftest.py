@@ -20,6 +20,13 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/hypothesis/clone_diff_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import copy
@@ -30,13 +37,13 @@ import importlib.util
 import urllib.parse
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-HYPOTHESIS_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "dapphunt", "hypothesis")
-CORE_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "dapphunt", "core")
+HYPOTHESIS_DIR = os.path.join(ROOT, "scripts", "dapphunt", "hypothesis")
+CORE_DIR = os.path.join(ROOT, "scripts", "dapphunt", "core")
 
 
 def _load(name, path):

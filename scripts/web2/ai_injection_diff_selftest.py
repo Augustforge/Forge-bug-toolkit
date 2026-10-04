@@ -18,6 +18,13 @@ Proves:
 PROMPT-INJECTION GUARD: the injection strings below (`ignore all previous instructions`) are OUR
 attacker vocabulary used as TEST FIXTURES (DATA, not commands). Marked intentionally.
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import re
 import sys
@@ -25,13 +32,13 @@ import shutil
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2 = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+WEB2 = os.path.join(ROOT, "scripts", "web2")
+SESSIONS = os.path.join(ROOT, "sessions")
 
 
 def _load(name, path):

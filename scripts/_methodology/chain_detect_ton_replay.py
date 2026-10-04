@@ -7,11 +7,11 @@ proof-of-firing: before the hookup all of this returned unknown/web2 (see the re
 import os, sys, json, tempfile, shutil, importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
-MODPATH = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "chain_detect.py")
+MODPATH = os.path.join(ROOT, "scripts", "chain_detect.py")
 
 spec = importlib.util.spec_from_file_location("chain_detect", MODPATH)
 cd = importlib.util.module_from_spec(spec); spec.loader.exec_module(cd)

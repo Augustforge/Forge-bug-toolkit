@@ -19,6 +19,13 @@ the producer writes a co-located toolkit-rooted artifact with a RESULT line, and
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/supply_chain_scan_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import json
@@ -27,12 +34,12 @@ import tempfile
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
+WEB2_DIR = os.path.join(ROOT, "scripts", "web2")
 
 
 def _load(name, path):
@@ -264,7 +271,7 @@ except Exception as e:
 
 
 # ─── CASE 8: producer writes co-located toolkit-rooted artifact; isolation ────────────────────
-TMP_SESSION = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_supply_chain")
+TMP_SESSION = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_supply_chain")
 TMP_TARGET = tempfile.mkdtemp(prefix="sc_target_")
 try:
     if os.path.exists(TMP_SESSION):

@@ -22,17 +22,17 @@ import os
 import sys
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
 
-sys.path.insert(0, os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "_methodology"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "_methodology"))
 
-CHECKLIST = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology",
+CHECKLIST = os.path.join(ROOT, "sessions", "_methodology",
                           "submission_checklist.yaml")
-CHECKLIST_PRETASK10 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+CHECKLIST_PRETASK10 = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                     "backups", "submission_checklist.yaml.pretask10.orig")
 
 ANTI_FP_IDS = ("marker-discipline", "body-diff-rule", "statistical-sample-rule", "shell-loop-ban")

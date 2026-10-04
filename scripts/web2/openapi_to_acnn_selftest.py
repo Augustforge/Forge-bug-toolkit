@@ -16,6 +16,13 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/openapi_to_acnn_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import json
@@ -24,12 +31,12 @@ import tempfile
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
+WEB2_DIR = os.path.join(ROOT, "scripts", "web2")
 
 
 def _load(name, path):
@@ -173,7 +180,7 @@ check("case6b process(): boundary string matches brief wording exactly",
       "got=%r" % (no_schema_result,))
 
 # ── CASE 7: write_scoremap — writes to EXACT session_dir, not CWD ──────────────────────────
-TMP_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_acnn")
+TMP_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_acnn")
 try:
     if os.path.exists(TMP_SESSION_DIR):
         shutil.rmtree(TMP_SESSION_DIR)
@@ -220,7 +227,7 @@ check("case8c A7b to_acnn_skeleton: consumer-строка несёт непус�
           [x.strip() for x in _consumer_rows[0].strip().strip("|").split("|")]),
       "rows=%r" % (_consumer_rows,))
 # А7b: run_multihop_authz РЕАЛЬНО зовёт run_authz_matrix на multihop-эндпоинтах (исполнение обещания).
-A7B_SESSION = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_a7b")
+A7B_SESSION = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_a7b")
 try:
     if os.path.exists(A7B_SESSION):
         shutil.rmtree(A7B_SESSION)

@@ -1,0 +1,2 @@
+# This directory holds per-target hunt ledgers at runtime (gitignored).
+# Kept so the toolkit can locate its root on a fresh clone.

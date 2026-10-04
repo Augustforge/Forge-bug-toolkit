@@ -73,6 +73,13 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/authz_diff_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import re
@@ -80,12 +87,12 @@ import shutil
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
+WEB2_DIR = os.path.join(ROOT, "scripts", "web2")
 
 
 def _load(name, path):
@@ -196,7 +203,7 @@ check("case7b authz_diff(unauth 403+WAF body): does NOT produce a real 'broken-a
 
 
 # ── CASE 8: run_authz_matrix writes to EXACT session_dir ────────────────────────────────────────
-TMP_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_authz")
+TMP_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_authz")
 try:
     if os.path.exists(TMP_SESSION_DIR):
         shutil.rmtree(TMP_SESSION_DIR)
@@ -270,7 +277,7 @@ real_full_cp = [d for d in divs_full_cp if d.dclass == "broken-auth"]
 check("case12c authz_diff(mode='full-matrix', contrapoint): real divergence provenance is NOT 'MANUAL'",
       bool(real_full_cp) and real_full_cp[0].provenance != "MANUAL", "got=%r" % (real_full_cp,))
 
-R7_TMP_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_authz_r7")
+R7_TMP_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_authz_r7")
 try:
     if os.path.exists(R7_TMP_SESSION_DIR):
         shutil.rmtree(R7_TMP_SESSION_DIR)
@@ -459,7 +466,7 @@ check("case19b Task T3 temporal inconclusive: does NOT produce a real 'revocatio
       "got=%r" % ([d.dclass for d in divs_stale_rl],))
 
 # ── CASE 20: Task T3 -- temporal outcome flows into run_authz_matrix as a real D-NN row ─────────────
-T3_TMP_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_authz_t3")
+T3_TMP_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_authz_t3")
 try:
     if os.path.exists(T3_TMP_SESSION_DIR):
         shutil.rmtree(T3_TMP_SESSION_DIR)
@@ -550,7 +557,7 @@ check("case24b relational extractor NEGATIVE: /profile (no foreign id at all) is
 # ── CASE 25-29: Task T4 (Plan 9) -- Object Provenance Ledger ────────────────────────────────────────
 oreg = _load("object_registry", os.path.join(WEB2_DIR, "object_registry.py"))
 
-T4_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_authz_t4")
+T4_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_authz_t4")
 try:
     if os.path.exists(T4_SESSION_DIR):
         shutil.rmtree(T4_SESSION_DIR)

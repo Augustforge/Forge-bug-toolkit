@@ -17,18 +17,25 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/business_logic_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
-SMA_PATH = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web3", "advanced", "state_machine_analyzer.py")
+WEB2_DIR = os.path.join(ROOT, "scripts", "web2")
+SMA_PATH = os.path.join(ROOT, "scripts", "web3", "advanced", "state_machine_analyzer.py")
 
 
 def _load(name, path):

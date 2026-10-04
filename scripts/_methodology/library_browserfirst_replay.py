@@ -18,17 +18,17 @@ proves FIRING against `.sdd/backups/invariant_library.md.pretask8.orig` (pre-Tas
 import os, sys, re
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
 
-LIB = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "invariant_library.md")
-LIB_ORIG = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd", "backups",
+LIB = os.path.join(ROOT, "methodology", "invariant_library.md")
+LIB_ORIG = os.path.join(ROOT, "methodology", "plans", ".sdd", "backups",
                          "invariant_library.md.orig")
-LIB_ORIG_PRETASK8 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd", "backups",
+LIB_ORIG_PRETASK8 = os.path.join(ROOT, "methodology", "plans", ".sdd", "backups",
                                   "invariant_library.md.pretask8.orig")
-MANDATE = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "browser_first_mandate.md")
+MANDATE = os.path.join(ROOT, "sessions", "_methodology", "browser_first_mandate.md")
 HUNT_MD = os.path.join(ROOT, ".claude", "commands", "hunt.md")
 DAPPHUNT_MD = os.path.join(ROOT, ".claude", "commands", "dapphunt.md")
 

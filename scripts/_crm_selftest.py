@@ -25,6 +25,13 @@ Usage:
     py -3 -X utf8 bug-bounty-toolkit/scripts/_crm_selftest.py
 """
 
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import json
 import subprocess
 import sys

@@ -24,16 +24,16 @@ import re
 import sys
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
 
 DAPPHUNT_MD = os.path.join(ROOT, ".claude", "commands", "dapphunt.md")
-DAPPHUNT_MD_ORIG = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+DAPPHUNT_MD_ORIG = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                  "backups", "dapphunt.md.orig")
-DAPPHUNT_MD_PRETASK10 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+DAPPHUNT_MD_PRETASK10 = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                       "backups", "dapphunt.md.pretask10.orig")
 
 TRUST_AXES = [

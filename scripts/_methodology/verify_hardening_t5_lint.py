@@ -24,16 +24,16 @@ import os
 import sys
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
 
-MYTHOS = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "mythos_techniques.md")
-CHECKLIST = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology",
+MYTHOS = os.path.join(ROOT, "methodology", "mythos_techniques.md")
+CHECKLIST = os.path.join(ROOT, "sessions", "_methodology",
                          "submission_checklist.yaml")
-BACKUPS = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+BACKUPS = os.path.join(ROOT, "methodology", "plans", ".sdd",
                        "plan9-hunter-parity", "backups")
 MYTHOS_ORIG = os.path.join(BACKUPS, "mythos_techniques.md.p9t5.orig")
 CHECKLIST_ORIG = os.path.join(BACKUPS, "submission_checklist.yaml.p9t5.orig")

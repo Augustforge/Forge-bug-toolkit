@@ -8,16 +8,16 @@ NOTE: Russian prompts/strings below are test INPUTS matched by the hooks' Russia
 import json, os, subprocess, sys, time, tempfile, shutil
 
 ROOT = os.getcwd()
-if not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+if not os.path.isdir(os.path.join(ROOT, "sessions")):
     r = os.getcwd()
-    while r and not os.path.isdir(os.path.join(r, "bug-bounty-toolkit", "sessions")):
+    while r and not os.path.isdir(os.path.join(r, "sessions")):
         nxt = os.path.dirname(r)
         if nxt == r: break
         r = nxt
     ROOT = r
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
-ENTRY = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_entry_gate.py")
-STOP = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_completeness_gate.py")
+SESSIONS = os.path.join(ROOT, "sessions")
+ENTRY = os.path.join(ROOT, "scripts", "hooks", "hunt_entry_gate.py")
+STOP = os.path.join(ROOT, "scripts", "hooks", "hunt_completeness_gate.py")
 SCRATCH = tempfile.mkdtemp()
 
 TEST_SLUG = "gatetestproto"   # from the URL immunefi.com/bug-bounty/gatetestproto/...
@@ -315,7 +315,7 @@ try:
           os.path.exists(obs) and open(obs, encoding="utf-8").read().strip() == "claude-opus-4-8",
           "got %r" % (open(obs, encoding="utf-8").read().strip() if os.path.exists(obs) else None))
     # A4d: wave_delta snapshot reads .observer_model -> stamps meta.model_version.
-    WD = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "wave_delta.py")
+    WD = os.path.join(ROOT, "scripts", "wave_delta.py")
     srcdir = os.path.join(SCRATCH, "a4src"); os.makedirs(srcdir, exist_ok=True)
     open(os.path.join(srcdir, "X.sol"), "w").write("function f() public {}")
     subprocess.run([sys.executable, WD, "snapshot", TEST_SLUG, "--src", srcdir],

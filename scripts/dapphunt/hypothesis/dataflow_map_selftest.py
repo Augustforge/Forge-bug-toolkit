@@ -19,6 +19,13 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/hypothesis/dataflow_map_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import json
@@ -28,12 +35,12 @@ import importlib.util
 import dataclasses
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-HYPOTHESIS_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "dapphunt", "hypothesis")
+HYPOTHESIS_DIR = os.path.join(ROOT, "scripts", "dapphunt", "hypothesis")
 
 
 def _load(name, path):

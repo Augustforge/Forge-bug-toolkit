@@ -125,7 +125,7 @@ def now():
 def find_root():
     here = os.path.abspath(__file__)
     # hooks -> scripts -> bug-bounty-toolkit -> project root
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
+    return os.path.dirname(os.path.dirname(os.path.dirname(here)))
 
 
 def slug_from_url(u):
@@ -174,7 +174,7 @@ def _norm(s):
 def _active_slugs(root):
     """Имена папок sessions/{slug}/ с существующим .hunt_active (был реальный хант)."""
     try:
-        base = os.path.join(root, "bug-bounty-toolkit", "sessions")
+        base = os.path.join(root, "sessions")
         out = set()
         for name in os.listdir(base):
             if os.path.exists(os.path.join(base, name, ".hunt_active")):
@@ -447,11 +447,11 @@ def main():
     url = url or ("resume:%s" % slug)  # resume-by-slug (нет ссылки) → плейсхолдер для Target
     cur_model = _current_model(data.get("transcript_path"))  # A4: текущий наблюдатель
     try:
-        sess = os.path.join(root, "bug-bounty-toolkit", "sessions", slug)
+        sess = os.path.join(root, "sessions", slug)
         ledger = os.path.join(sess, "hypotheses.md")
         marker = os.path.join(sess, ".hunt_active")
         web = _is_web_target(url, user_prompt)
-        template = os.path.join(root, "bug-bounty-toolkit", "sessions", "_methodology",
+        template = os.path.join(root, "sessions", "_methodology",
                                 "hypotheses_web_template.md" if web else "hypotheses_template.md")
 
         resume = os.path.exists(ledger)
@@ -468,7 +468,7 @@ def main():
         # T13 system_model.md — заводится НЕЗАВИСИМО от resume (K3): иначе уже идущие ханты
         # (ledger есть) никогда не получат модель, и divergence-first слой к ним не доедет.
         model = os.path.join(sess, "system_model.md")
-        model_tpl = os.path.join(root, "bug-bounty-toolkit", "sessions", "_methodology",
+        model_tpl = os.path.join(root, "sessions", "_methodology",
                                  "system_model_web_template.md" if web else "system_model_template.md")
         model_created = False
         if not os.path.exists(model) and os.path.exists(model_tpl):
@@ -505,8 +505,8 @@ def main():
         except Exception:
             pass
 
-        rel = os.path.join("bug-bounty-toolkit", "sessions", slug, "hypotheses.md")
-        rel_model = os.path.join("bug-bounty-toolkit", "sessions", slug, "system_model.md")
+        rel = os.path.join("sessions", slug, "hypotheses.md")
+        rel_model = os.path.join("sessions", slug, "system_model.md")
         banner = "HUNT-LOOP АКТИВЕН · ledger: %s" % rel
 
         # T10 forcing-такт: модель строится ДО чтения кода. Скелет форсим здесь, детали — в файле-спеке

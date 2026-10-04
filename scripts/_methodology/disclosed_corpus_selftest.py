@@ -13,6 +13,13 @@ Proves FIRING on the REAL regression_manifest.yaml ([[feedback_hook_must_prove_f
 Run: py -3 -X utf8 disclosed_corpus_selftest.py
 Prints N/N PASS; non-zero exit on any fail.
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import sys
 import os
 import importlib.util

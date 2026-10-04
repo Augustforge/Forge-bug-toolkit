@@ -25,11 +25,11 @@ import shutil
 import sys
 import tempfile
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # The HOOK path can be overridden via argv[1] — to check "the test fails without the detector" against a stripped copy.
 HOOK = sys.argv[1] if len(sys.argv) > 1 else \
-    os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_completeness_gate.py")
-TPL_LEDGER = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "hypotheses_template.md")
+    os.path.join(ROOT, "scripts", "hooks", "hunt_completeness_gate.py")
+TPL_LEDGER = os.path.join(ROOT, "sessions", "_methodology", "hypotheses_template.md")
 
 
 def load_gate():

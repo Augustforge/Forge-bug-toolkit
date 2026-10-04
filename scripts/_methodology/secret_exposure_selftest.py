@@ -8,6 +8,13 @@ Builds a fixture tree, runs scan_target, checks:
   anti-FP        — vendored / test-dir anvil / placeholder / a single PII stay SILENT.
 No solc/network needed. Run: py -3 -X utf8 secret_exposure_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import base64
 import os
 import shutil

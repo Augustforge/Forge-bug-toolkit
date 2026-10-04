@@ -100,8 +100,8 @@ def _owned_markers(current_sid):
     try:
         here = os.path.abspath(__file__)
         # hooks -> scripts -> bug-bounty-toolkit -> project root
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-        sessions = os.path.join(root, "bug-bounty-toolkit", "sessions")
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+        sessions = os.path.join(root, "sessions")
         now = time.time()
         for m in glob.glob(os.path.join(sessions, "*", ".hunt_active")):
             if now - os.path.getmtime(m) >= 24 * 3600:
@@ -358,8 +358,8 @@ def _ledger_state_active(current_sid, tpath):
         return False                                       # debug session / did not edit a ledger -> not a hunt
     try:
         here = os.path.abspath(__file__)
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-        sessions = os.path.join(root, "bug-bounty-toolkit", "sessions")
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+        sessions = os.path.join(root, "sessions")
         now = time.time()
         cand = []
         for slug in edited:
@@ -1149,7 +1149,7 @@ DEFI_VALUE_UNMAPPED_REASON = (
 def freshest_active_ledger(current_sid):
     try:
         here = os.path.abspath(__file__)
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
         fresh = _owned_markers(current_sid)  # already session-scoped
         if not fresh:
             return None, None
@@ -7461,8 +7461,8 @@ def _false_refute_corpus_count():
     (top-level `cases:` протокольных кейсов и `symmetry_reference:` НЕ считаем)."""
     try:
         here = os.path.abspath(__file__)
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-        mpath = os.path.join(root, "bug-bounty-toolkit", "sessions",
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+        mpath = os.path.join(root, "sessions",
                              "_methodology", "regression_manifest.yaml")
         with open(mpath, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -7978,8 +7978,8 @@ def _weak_classes(_cache={}):
     weak = set()
     try:
         here = os.path.abspath(__file__)
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-        path = os.path.join(root, "bug-bounty-toolkit", "sessions", "_methodology", "calibration_log.jsonl")
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+        path = os.path.join(root, "sessions", "_methodology", "calibration_log.jsonl")
         tot, good = {}, {}
         with open(path, "r", encoding="utf-8") as f:
             for line in f:

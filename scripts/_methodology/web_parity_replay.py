@@ -4,12 +4,12 @@ an explicit N/A disarms them. HUNT-EXIT releases the loop. Proves: web got the d
 import os, sys, shutil, time, importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
-HOOKS = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+HOOKS = os.path.join(ROOT, "scripts", "hooks")
+SESSIONS = os.path.join(ROOT, "sessions")
 
 def _load(name, path):
     spec = importlib.util.spec_from_file_location(name, path)

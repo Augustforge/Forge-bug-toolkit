@@ -7,14 +7,14 @@ feedback_hook_must_prove_firing: the test proves FIRING. Isolation via BBT_SESSI
 import json, os, subprocess, sys, time, tempfile, shutil
 
 ROOT = os.getcwd()
-if not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+if not os.path.isdir(os.path.join(ROOT, "sessions")):
     r = os.getcwd()
-    while r and not os.path.isdir(os.path.join(r, "bug-bounty-toolkit", "sessions")):
+    while r and not os.path.isdir(os.path.join(r, "sessions")):
         nxt = os.path.dirname(r)
         if nxt == r: break
         r = nxt
     ROOT = r
-HOOK = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "autonomous_hunt_guard.py")
+HOOK = os.path.join(ROOT, "scripts", "hooks", "autonomous_hunt_guard.py")
 
 results = []
 def check(name, cond, detail=""):

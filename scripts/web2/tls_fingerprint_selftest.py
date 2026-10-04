@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 """Selftest для tls_fingerprint.py — fail-closed, read-only guard, profile-guard, unsupported-degradation,
 ok-путь через мок curl_cffi-клиента (БЕЗ реальных сетевых запросов)."""
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 

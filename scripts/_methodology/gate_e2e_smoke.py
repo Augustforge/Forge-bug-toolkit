@@ -5,17 +5,17 @@ Checks the scenarios by block/reason. Cleans up after itself. Answers "does it w
 import json, os, subprocess, sys, time, tempfile, shutil
 
 ROOT = os.environ.get("BBT_ROOT") or os.getcwd()
-if not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+if not os.path.isdir(os.path.join(ROOT, "sessions")):
     # search upward from cwd
     r = os.getcwd()
-    while r and not os.path.isdir(os.path.join(r, "bug-bounty-toolkit", "sessions")):
+    while r and not os.path.isdir(os.path.join(r, "sessions")):
         nxt = os.path.dirname(r)
         if nxt == r: break
         r = nxt
     ROOT = r
-assert os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")), "ROOT not found: " + ROOT
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
-HOOK = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_completeness_gate.py")
+assert os.path.isdir(os.path.join(ROOT, "sessions")), "ROOT not found: " + ROOT
+SESSIONS = os.path.join(ROOT, "sessions")
+HOOK = os.path.join(ROOT, "scripts", "hooks", "hunt_completeness_gate.py")
 SCRATCH = os.path.dirname(os.path.abspath(__file__))
 
 def win_fwd(p):

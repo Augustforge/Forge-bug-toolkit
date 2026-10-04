@@ -15,14 +15,14 @@ import time
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-METHOD = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "_methodology")
-HOOKS = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+METHOD = os.path.join(ROOT, "scripts", "_methodology")
+HOOKS = os.path.join(ROOT, "scripts", "hooks")
+SESSIONS = os.path.join(ROOT, "sessions")
 
 
 def _load(name, path):

@@ -57,9 +57,9 @@ import re
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-_RR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "_methodology", "regression_replay.py")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_RR = os.path.join(ROOT, "scripts", "_methodology", "regression_replay.py")
+SESSIONS = os.path.join(ROOT, "sessions")
 CALIB = os.path.join(SESSIONS, "_methodology", "calibration_log.jsonl")
 
 # Canonical splits — ALWAYS emit all three (held-out must render n=0, even when empty).

@@ -15,12 +15,12 @@ these are kept verbatim and marked "KEPT RU" at their lines."""
 import os, sys, time, shutil, importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
-MODPATH = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_completeness_gate.py")
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+MODPATH = os.path.join(ROOT, "scripts", "hooks", "hunt_completeness_gate.py")
+SESSIONS = os.path.join(ROOT, "sessions")
 
 spec = importlib.util.spec_from_file_location("hcg", MODPATH)
 mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)

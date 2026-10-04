@@ -50,8 +50,8 @@ def _owned_markers(current_sid):
     out = []
     try:
         here = os.path.abspath(__file__)
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-        sessions = os.path.join(root, "bug-bounty-toolkit", "sessions")
+        root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+        sessions = os.path.join(root, "sessions")
         now = time.time()
         for m in glob.glob(os.path.join(sessions, "*", ".hunt_active")):
             if now - os.path.getmtime(m) >= 24 * 3600:

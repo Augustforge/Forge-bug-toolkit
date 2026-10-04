@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """Selftest for evidence_redact.py — cookie/auth/secret/PII get stripped, HAR structure stays intact, original isn't mutated."""
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import copy
 import os
 import sys

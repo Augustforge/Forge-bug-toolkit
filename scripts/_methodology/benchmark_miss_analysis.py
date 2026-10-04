@@ -43,8 +43,8 @@ import sys
 import time
 from collections import Counter
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-BLIND_SPOTS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "blind_spots.md")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BLIND_SPOTS = os.path.join(ROOT, "sessions", "_methodology", "blind_spots.md")
 
 # ── thresholds ──
 # RECURRING_THRESHOLD — OUR OWN threshold (not the scorer's): the same Counter/>=3 pattern as

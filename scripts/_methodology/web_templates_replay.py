@@ -9,12 +9,12 @@ and the Russian "undup_origin multiplier" phrase). Each is marked "KEPT RU" wher
 import os, sys, importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT: break
     ROOT = nxt
-HOOKS = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks")
-METH = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology")
+HOOKS = os.path.join(ROOT, "scripts", "hooks")
+METH = os.path.join(ROOT, "sessions", "_methodology")
 
 def _load(name, path):
     spec = importlib.util.spec_from_file_location(name, path)

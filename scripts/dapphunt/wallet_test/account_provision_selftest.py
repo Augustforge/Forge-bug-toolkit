@@ -13,6 +13,13 @@ Proves TRIGGERING (not just the absence of false positives):
   (8) live=False (offline) -> opsec is NOT run, accounts handed out with mode=MANUAL;
   (9) session_bundle hands out creds+cookies for authz-diff exposure.
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import json

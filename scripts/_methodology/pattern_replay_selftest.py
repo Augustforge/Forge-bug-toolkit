@@ -9,6 +9,13 @@ is not parsed).
 
 Run: py -3 -X utf8 scripts/_methodology/pattern_replay_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import importlib.util
 import os
 import shutil

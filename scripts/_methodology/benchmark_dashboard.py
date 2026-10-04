@@ -44,8 +44,8 @@ import re
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SESSIONS = os.path.join(ROOT, "sessions")
 METHOD_DIR = os.path.join(SESSIONS, "_methodology")
 CALIB = os.path.join(METHOD_DIR, "calibration_log.jsonl")
 BLIND_PROTOCOL = os.path.join(METHOD_DIR, "benchmark_blind_protocol.md")

@@ -28,10 +28,10 @@ import os
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-HOOK = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "hooks", "hunt_completeness_gate.py")
-CORPUS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "gate_corpus.jsonl")
-CALIB = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "calibration_log.jsonl")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+HOOK = os.path.join(ROOT, "scripts", "hooks", "hunt_completeness_gate.py")
+CORPUS = os.path.join(ROOT, "sessions", "_methodology", "gate_corpus.jsonl")
+CALIB = os.path.join(ROOT, "sessions", "_methodology", "calibration_log.jsonl")
 
 
 def load_gate():

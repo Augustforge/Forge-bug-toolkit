@@ -30,8 +30,8 @@ import time
 import subprocess
 
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-SESSIONS = os.path.join(ROOT, "bug-bounty-toolkit", "sessions")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SESSIONS = os.path.join(ROOT, "sessions")
 MANIFEST = os.path.join(SESSIONS, "_methodology", "regression_manifest.yaml")
 SNAP_DIR = os.path.join(SESSIONS, "_methodology", "_regression_snapshots")
 CALIB = os.path.join(SESSIONS, "_methodology", "calibration_log.jsonl")

@@ -45,8 +45,8 @@ def _sessions_root():
     if env:
         return env
     here = os.path.abspath(__file__)
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
-    return os.path.join(root, "bug-bounty-toolkit", "sessions")
+    root = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+    return os.path.join(root, "sessions")
 
 
 def _owned_markers(current_sid):

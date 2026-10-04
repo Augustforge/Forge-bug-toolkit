@@ -14,6 +14,13 @@ Proves it ACTUALLY FIRES (not just the absence of false positives):
       file -> [] not a crash; broken input to record does not crash the flow;
   (8) to_har produces a HAR-compatible log from the records.
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import json

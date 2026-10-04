@@ -82,6 +82,16 @@ docker build -t bbt docker/
 Everything an agent needs to operate the system is in **[SKILL.md](SKILL.md)**. The detailed
 methodology lives in [`methodology/`](methodology/); the engines in [`scripts/`](scripts/).
 
+Verify the engine on a fresh clone (no setup, no API keys needed):
+
+```bash
+python run_selftests.py
+# -> 30 passed, 4 skipped, 0 failed
+```
+
+The 4 skipped tests need a private benchmark/calibration corpus that isn't part of the public
+release; everything else runs standalone.
+
 ## A note on language
 
 The outward-facing surface is English — this README, the operating guide ([SKILL.md](SKILL.md)),

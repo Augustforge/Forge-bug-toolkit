@@ -67,22 +67,22 @@ import re
 import sys
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
 
 HUNT_MD = os.path.join(ROOT, ".claude", "commands", "hunt.md")
-HUNT_MD_PRETASK11 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+HUNT_MD_PRETASK11 = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                   "backups", "hunt.md.pretask11.orig")
-HUNT_MD_PRETASK12 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+HUNT_MD_PRETASK12 = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                   "backups", "hunt.md.pretask12.orig")
 
 # -- FDE Plan 6, Task 11 (carry): TON rehoming web2->deephunt + web3-discovery documented-gap ------
 DEEPHUNT_MD = os.path.join(ROOT, ".claude", "commands", "deephunt.md")
-BLIND_SPOTS_MD = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_methodology", "blind_spots.md")
-HUNT_MD_TASK11_PLAN6 = os.path.join(ROOT, "bug-bounty-toolkit", "methodology", "plans", ".sdd",
+BLIND_SPOTS_MD = os.path.join(ROOT, "sessions", "_methodology", "blind_spots.md")
+HUNT_MD_TASK11_PLAN6 = os.path.join(ROOT, "methodology", "plans", ".sdd",
                                      "backups", "hunt.md.task11.orig")
 
 # web2 profile, 6 access-control axes (namespace AC-, system_model_web_template.md:169-177).

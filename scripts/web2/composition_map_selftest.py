@@ -18,6 +18,13 @@ Proves:
 
 Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/composition_map_selftest.py
 """
+# Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
+import sys as _utf8_sys
+try:
+    _utf8_sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import shutil
@@ -25,12 +32,12 @@ import tempfile
 import importlib.util
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
-WEB2_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2")
+WEB2_DIR = os.path.join(ROOT, "scripts", "web2")
 
 
 def _load(name, path):
@@ -142,7 +149,7 @@ check("case6a build_composition_graph: 3 model rows, ALL missing source or compo
       len(incomplete_edges) == 0, "got=%r" % (incomplete_edges,))
 
 # ── CASE 7: run_composition_map — writes to EXACT session_dir, co-located, RESULT always present ──
-TMP_SESSION_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "sessions", "_selftest_tmp_web2_composition")
+TMP_SESSION_DIR = os.path.join(ROOT, "sessions", "_selftest_tmp_web2_composition")
 try:
     if os.path.exists(TMP_SESSION_DIR):
         shutil.rmtree(TMP_SESSION_DIR)

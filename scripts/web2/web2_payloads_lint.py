@@ -23,14 +23,14 @@ import sys
 import tempfile
 
 ROOT = os.getcwd()
-while ROOT and not os.path.isdir(os.path.join(ROOT, "bug-bounty-toolkit", "sessions")):
+while ROOT and not os.path.isdir(os.path.join(ROOT, "sessions")):
     nxt = os.path.dirname(ROOT)
     if nxt == ROOT:
         break
     ROOT = nxt
 
-PAYLOADS_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts", "web2", "payloads")
-SCRIPTS_DIR = os.path.join(ROOT, "bug-bounty-toolkit", "scripts")
+PAYLOADS_DIR = os.path.join(ROOT, "scripts", "web2", "payloads")
+SCRIPTS_DIR = os.path.join(ROOT, "scripts")
 
 EXPECTED_FILES = [
     "bola.md", "bfla.md", "bopla.md", "jwt.md", "oauth2.md", "mass_assignment.md",
