@@ -26,7 +26,7 @@ What it does (heuristic, NOT proof of a bug):
      fetch its (old) source (`fetch_source.py`) and run the full taxonomy
      against THAT version, not HEAD.
 
-Etherscan V2 multichain API. Key from env or bug-bounty-toolkit/.env
+Etherscan V2 multichain API. Key from env or .env
 (ETHERSCAN_API_KEY). V2 uses a single key across 60+ chains via `chainid`.
 
 Usage:
@@ -69,7 +69,7 @@ def load_key():
     key = os.getenv("ETHERSCAN_API_KEY", "")
     if key:
         return key
-    # fall back to bug-bounty-toolkit/.env (this file lives in scripts/web3/detectors/)
+    # fall back to .env (this file lives in scripts/web3/detectors/)
     env = Path(__file__).resolve().parents[3] / ".env"
     if env.exists():
         for ln in env.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -228,7 +228,7 @@ def main():
         return 2
 
     if not KEY:
-        print("ETHERSCAN_API_KEY not set (env or bug-bounty-toolkit/.env)", file=sys.stderr)
+        print("ETHERSCAN_API_KEY not set (env or .env)", file=sys.stderr)
         return 2
     chainid = CHAIN_IDS.get(args.chain.lower())
     if not chainid:

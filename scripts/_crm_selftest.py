@@ -10,7 +10,7 @@ current working directory (not to the script's location) and creates it on impor
 `_crm` into this process (importing it would create/touch CRM_DIR relative to the
 selftest's CWD) — instead we run `_crm.py` as a SUBPROCESS with `cwd=<tempfile.mkdtemp()>`
 for every testcase. The relative `sessions/_crm` resolves inside the temp folder, so the
-real `bug-bounty-toolkit/sessions/_crm/` (live reports.jsonl/abort_log.jsonl) is never
+real `sessions/_crm/` (live reports.jsonl/abort_log.jsonl) is never
 read or written. `isolation_guard()` additionally proves this: it snapshots mtime+size
 of the real files BEFORE and AFTER the whole run and requires a byte-for-byte match.
 
@@ -22,7 +22,7 @@ Cases:
       (days_to_payout simply isn't set, the error is swallowed)
 
 Usage:
-    py -3 -X utf8 bug-bounty-toolkit/scripts/_crm_selftest.py
+    py -3 -X utf8 scripts/_crm_selftest.py
 """
 
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).

@@ -46,7 +46,7 @@ REMINDER = (
     "long-path limits, Cyrillic in the <HOME> path, submodule pinning "
     "3-4 levels deep, remapping conflicts (OZ v4 vs v5). Do NOT fight Windows. "
     "Run this build/clone INSIDE the `bbt` Docker image (docker/Dockerfile). "
-    "Docker is usually NOT running — bring it up yourself: `docker build -t bbt -f bug-bounty-toolkit/docker/Dockerfile bug-bounty-toolkit` "
+    "Docker is usually NOT running — bring it up yourself: `docker build -t bbt -f docker/Dockerfile bug-bounty-toolkit` "
     "(if the image is missing), then `docker run --rm -v <repo>:/work -w /work bbt <command>`, "
     "mounting the repository into the container's Linux FS (NOT via a Windows path with Cyrillic). "
     "If the command is genuinely lightweight and Windows is fine here — ignore this and continue."

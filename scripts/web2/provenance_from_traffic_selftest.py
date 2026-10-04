@@ -22,7 +22,7 @@ Proves the cross-thread fusion FIRES on an OFFLINE mock traffic-archive (no netw
  (7) anti-FP: a leaked owner marker that DISAGREES with the registered owner is NOT proven (mirrors
      _apply_provenance's own guard) even though the id is registered.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/provenance_from_traffic_selftest.py
+Run: py -3 -X utf8 scripts/web2/provenance_from_traffic_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

@@ -24,7 +24,7 @@ Anti-FP (Cat 3 applicability gate): a difference is only a finding if the two si
 MEANT to mirror (both move the same pegged asset). This tool only flags; the reviewer
 must confirm intended symmetry before reporting.
 
-See: bug-bounty-toolkit/methodology/hypothesis_taxonomy.md Cat 3.16.
+See: methodology/hypothesis_taxonomy.md Cat 3.16.
 
 Usage:
     py -3 -X utf8 peg_check_asymmetry.py <path-to-sol-src> [--json out.json] [--all]

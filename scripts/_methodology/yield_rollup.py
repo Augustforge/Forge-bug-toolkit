@@ -23,7 +23,7 @@ import os
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(_HERE))  # bug-bounty-toolkit/
+ROOT = os.path.dirname(os.path.dirname(_HERE))  # 
 DEFAULT_SESSIONS = os.path.join(ROOT, "sessions")
 
 _PIPE_ESC = "\x00"

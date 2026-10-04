@@ -7,7 +7,7 @@ on healthy ones. Root cause: an axelar hunt — 21 T9 axes, ZERO fork-PoCs (all 
 while the fork-diff gate arms only from `PARENT-FORK` (forks) → on a non-fork there was no equivalent.
 B2 is the soft-nudge that closes this.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/exec_floor_replay.py
+Run: py -3 -X utf8 scripts/_methodology/exec_floor_replay.py
 """
 import importlib.util
 import os

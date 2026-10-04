@@ -10,7 +10,7 @@ Reads:
   sessions/$DOMAIN/iframe_trust_matrix.json
   sessions/$DOMAIN/attack_chains.md        (composed attack pattern)
 
-Picks the right template from bug-bounty-toolkit/templates/dapp_reports/
+Picks the right template from templates/dapp_reports/
 and fills placeholders. Output is intentionally a STARTING POINT — the operator
 adjusts before submit, then runs WAF + voice linters.
 
@@ -226,7 +226,7 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--template-dir",
         type=Path,
-        default=Path("bug-bounty-toolkit/templates/dapp_reports"),
+        default=Path("templates/dapp_reports"),
         help="Where the per-platform templates live",
     )
     args = parser.parse_args(argv)
@@ -255,8 +255,8 @@ def main(argv=None) -> int:
     # Remind to run linters
     print(f"Draft written: {args.output}")
     print("Next steps:")
-    print(f"  python3 bug-bounty-toolkit/scripts/submission/waf_safe_linter.py --file {args.output}")
-    print(f"  python3 bug-bounty-toolkit/scripts/submission/voice_tone_linter.py --file {args.output}")
+    print(f"  python3 scripts/submission/waf_safe_linter.py --file {args.output}")
+    print(f"  python3 scripts/submission/voice_tone_linter.py --file {args.output}")
     print("Both must return PASS (0 issues) before submission.")
     return 0
 

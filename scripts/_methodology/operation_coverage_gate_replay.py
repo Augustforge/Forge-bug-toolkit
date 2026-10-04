@@ -21,7 +21,7 @@ PROVES (rule: selftest must show FIRING on a real bad case, not just absence of 
      prompt-injection guard -> outcome == blocked), and `inconclusive-<class>` for a plain WAF/429.
 
 Monkeypatches freshest_active_ledger; model + producer files land NEXT TO the ledger, as in prod.
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/operation_coverage_gate_replay.py
+Run: py -3 -X utf8 scripts/_methodology/operation_coverage_gate_replay.py
 """
 import importlib.util
 import os

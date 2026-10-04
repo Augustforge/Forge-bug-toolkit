@@ -769,7 +769,7 @@ HYBRID_REMINDER = (
     "HYBRID — механизированный **reduce=synthesis**: старший агент над ВСЕМ батчем наблюдений ищет пары "
     "ДАЛЁКИХ улик (cross-thread), которых одиночный scout структурно не выражает (ручной merge это "
     "проваливал: strata, impossible-cloud). Запусти: "
-    "`Workflow({scriptPath:'bug-bounty-toolkit/scripts/_methodology/divergence_fanout.workflow.js', "
+    "`Workflow({scriptPath:'scripts/_methodology/divergence_fanout.workflow.js', "
     "args:{slug:'<target-slug>'}})` (arg `slug` ОБЯЗАТЕЛЕН — иначе скрипт падает на своём гварде). В чате "
     "произнеси «HYBRID Scout Fan-Out». Если `Workflow` реально НЕ доступен в этой сессии — тогда ручной "
     "by-invariant веер = легитимный фолбэк (скил: «если доступен»), продолжай."

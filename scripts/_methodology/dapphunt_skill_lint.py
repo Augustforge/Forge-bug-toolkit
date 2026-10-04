@@ -9,7 +9,7 @@ Reference Files of the new artifacts (`runtime_harness`/`web_severity`/`clone_di
 Phase Budget Summary + Cognitive Framework.
 Task 10 review-fix [Important]: `dataflow_map.md` was a dangling reference (mentioned in Reference Files,
 but `display_vs_reality_grep.py` in Phase 2.5 Step 2 was called without `--md-out` — the artifact was never
-created). Phase 2.5 Step 2 now carries `--md-out bug-bounty-toolkit/sessions/$DOMAIN/dataflow_map.md`
+created). Phase 2.5 Step 2 now carries `--md-out sessions/$DOMAIN/dataflow_map.md`
 with the full session path (symmetric to Phase 5 `clone_diff.md`); check (l) gates the regression.
 
 Proves FIRING, not a no-op: all checks are run BOTH against the CURRENT file (must PASS) AND
@@ -59,8 +59,8 @@ OLD_MODEL_NA_LINE = "MODEL: N/A — dapphunt frontend"
 # Task-10 new-artifact markers (10b Reference Files).
 TASK10_REF_MARKERS = ["runtime_harness", "web_severity", "clone_diff.md"]
 
-CLONE_DIFF_SESSION_PATH = "--md-out bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md"
-DATAFLOW_MAP_SESSION_PATH = "--md-out bug-bounty-toolkit/sessions/$DOMAIN/dataflow_map.md"
+CLONE_DIFF_SESSION_PATH = "--md-out sessions/$DOMAIN/clone_diff.md"
+DATAFLOW_MAP_SESSION_PATH = "--md-out sessions/$DOMAIN/dataflow_map.md"
 
 
 def _phase_section(text, phase_num, next_phase_num):

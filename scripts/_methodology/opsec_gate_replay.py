@@ -21,7 +21,7 @@ def _load(name, path):
 
 mod = _load("opsec_preflight", MODPATH)
 
-# ISOLATION from the real bug-bounty-toolkit/opsec_baseline.json: point load_baseline() at a
+# ISOLATION from the real opsec_baseline.json: point load_baseline() at a
 # guaranteed-nonexistent path -> baseline is empty -> cases 1-13 behave exactly as before the baseline
 # feature (full config, nothing mixed in). Cases 14* use THEIR OWN temporary baseline.
 os.environ["OPSEC_BASELINE_PATH"] = os.path.join(ROOT, "_no_such_baseline_ZZ.json")

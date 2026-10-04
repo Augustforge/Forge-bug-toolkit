@@ -56,10 +56,10 @@ Attached files:
 
 <!--
 After fill, run BOTH linters before submit:
-  python3 bug-bounty-toolkit/scripts/submission/waf_safe_linter.py --file <this file>
-  python3 bug-bounty-toolkit/scripts/submission/voice_tone_linter.py --file <this file>
+  python3 scripts/submission/waf_safe_linter.py --file <this file>
+  python3 scripts/submission/voice_tone_linter.py --file <this file>
 
 If Cloudflare WAF returns 403 even after linter pass:
-  python3 bug-bounty-toolkit/scripts/submission/ray_id_support_handler.py \
+  python3 scripts/submission/ray_id_support_handler.py \
     --platform hackenproof --ray-id <ID> --report-id <ID> --output support.md
 -->

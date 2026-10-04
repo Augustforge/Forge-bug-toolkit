@@ -29,7 +29,7 @@ level (which would crash the whole process BEFORE main()'s try/except could catc
 instead `_LIB` stays None, and `guard_verdict` quietly returns None (fail-open) for any
 call.
 
-The debounce marker `.last_pi_guard` does NOT live in `bug-bounty-toolkit/sessions/{slug}/` (unlike
+The debounce marker `.last_pi_guard` does NOT live in `sessions/{slug}/` (unlike
 `.last_ledger_nudge`/`.last_model_nudge` in ledger_first_nudge/model_first_nudge) -- in THOSE hooks
 debounce is physically tied to an already-found `.hunt_active` (they gate on "a hunt is running IN THIS
 session"). This hook is a GENERAL defense: the scan applies to ANY WebFetch/Agent/Playwright return

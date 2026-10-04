@@ -329,24 +329,24 @@ These assets apply across all bug classes, not tied to a specific category:
 
 | Asset | Purpose | When it applies (auto by skill) |
 |---|---|---|
-| `bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md` | Pre-flight 5Q checklist (concrete prediction, falsifier, severity ceiling, cost, 5-min refute) | Phase 2.5 step 6.5; deephunt J0 (REQUIRED — kills 80% of bad hypotheses before grep) |
-| `bug-bounty-toolkit/sessions/_methodology/stop_signals.md` | Decision tree: abort vs escalate vs external review (8 stop + 6 escalate + 5 review signals) | Every phase gate (J0→J1, J1→J2, etc) |
-| `bug-bounty-toolkit/sessions/_methodology/calibration_log.md` | Personal per-class accuracy tracking protocol (jsonl append-only) | J9 mandatory update before submit |
-| `bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl` | Append-only accuracy data store | Updated by hunt + deephunt |
-| `bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md` | 7-field template for reading writeups/audits "backwards" — extract the author's mental model | J-2 (audit reading) + J-1 (writeup reading) |
-| `bug-bounty-toolkit/sessions/_methodology/learning_paths/_INDEX.md` | Sequential primitive paths (spec→ref impl→toy bug→real review→hunt readiness) | Triggered when calibration_log shows a weak class (<30% accuracy AND n>=5) |
-| `bug-bounty-toolkit/sessions/_methodology/learning_paths/tss.md` | TSS path (4-6 weeks @ 4h/week) | Triggered on TSS targets if weak class |
-| `bug-bounty-toolkit/sessions/_methodology/learning_paths/zk.md` | ZK path (6-10 weeks) | Triggered on ZK targets if weak class |
+| `sessions/_methodology/hypothesis_quality.md` | Pre-flight 5Q checklist (concrete prediction, falsifier, severity ceiling, cost, 5-min refute) | Phase 2.5 step 6.5; deephunt J0 (REQUIRED — kills 80% of bad hypotheses before grep) |
+| `sessions/_methodology/stop_signals.md` | Decision tree: abort vs escalate vs external review (8 stop + 6 escalate + 5 review signals) | Every phase gate (J0→J1, J1→J2, etc) |
+| `sessions/_methodology/calibration_log.md` | Personal per-class accuracy tracking protocol (jsonl append-only) | J9 mandatory update before submit |
+| `sessions/_methodology/calibration_log.jsonl` | Append-only accuracy data store | Updated by hunt + deephunt |
+| `sessions/_methodology/adversarial_reading.md` | 7-field template for reading writeups/audits "backwards" — extract the author's mental model | J-2 (audit reading) + J-1 (writeup reading) |
+| `sessions/_methodology/learning_paths/_INDEX.md` | Sequential primitive paths (spec→ref impl→toy bug→real review→hunt readiness) | Triggered when calibration_log shows a weak class (<30% accuracy AND n>=5) |
+| `sessions/_methodology/learning_paths/tss.md` | TSS path (4-6 weeks @ 4h/week) | Triggered on TSS targets if weak class |
+| `sessions/_methodology/learning_paths/zk.md` | ZK path (6-10 weeks) | Triggered on ZK targets if weak class |
 
 ### Existing methodology (already hooked)
 
 | Asset | Purpose | When used |
 |---|---|---|
-| `bug-bounty-toolkit/sessions/_methodology/successful_patterns.md` | Confirmed hypothesis patterns with provenance | J9 — append new instance OR increment counter |
-| `bug-bounty-toolkit/sessions/_methodology/cross_chain_hypothesis_amplifier.md` | EVM↔Solana class mapping | J8 mandatory for cross-chain generalization |
-| `bug-bounty-toolkit/sessions/_methodology/sol_failure_modes.md` | Log of Solana NO_FIND hunts | After a Solana hunt without a find |
-| `bug-bounty-toolkit/scripts/_methodology/failure_analysis.py` | Auto-classify rejected reports | After a CRM reject |
-| `bug-bounty-toolkit/scripts/_methodology/failure_modes.md` | Auto-growing taxonomy of reject reasons | Updated by failure_analysis.py |
+| `sessions/_methodology/successful_patterns.md` | Confirmed hypothesis patterns with provenance | J9 — append new instance OR increment counter |
+| `sessions/_methodology/cross_chain_hypothesis_amplifier.md` | EVM↔Solana class mapping | J8 mandatory for cross-chain generalization |
+| `sessions/_methodology/sol_failure_modes.md` | Log of Solana NO_FIND hunts | After a Solana hunt without a find |
+| `scripts/_methodology/failure_analysis.py` | Auto-classify rejected reports | After a CRM reject |
+| `scripts/_methodology/failure_modes.md` | Auto-growing taxonomy of reject reasons | Updated by failure_analysis.py |
 | `sessions/_methodology/validation/VALIDATION_REPORT.md` (<PROJECT_ROOT>) | Historical Phase J validation 2026-05-15 | Reference when validating a new tool |
 | `sessions/_methodology/validation/PHASE_K_VALIDATION_REPORT.md` (<PROJECT_ROOT>) | Historical Phase K Solana validation 2026-05-17 | Same for Solana tools |
 

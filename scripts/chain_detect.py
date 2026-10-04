@@ -52,7 +52,7 @@ TON_CONTRACT_EXTS = (".fc", ".func", ".tact", ".tolk", ".fift", ".tlb")
 # Require >=2 to avoid matching arbitrary C++ repos.
 TON_NODE_DIRS = ("catchain", "validator-session", "tonlib", "adnl", "validator")
 
-TON_TOOL = "bug-bounty-toolkit/scripts/ton/scan.sh"
+TON_TOOL = "scripts/ton/scan.sh"
 
 
 def detect_from_address(target: str) -> dict | None:
@@ -275,7 +275,7 @@ def detect_from_repo(path: Path) -> dict | None:
 # --- Kwil / KGW fingerprint -------------------------------------------------
 # When a target is a Kwil node (kwild, usually "mode":"open" behind a KGW gateway)
 # the raw black-box tester applies. See scripts/web3/kwil/kwil_blackbox.py.
-KWIL_TOOL = "bug-bounty-toolkit/scripts/web3/kwil/kwil_blackbox.py"
+KWIL_TOOL = "scripts/web3/kwil/kwil_blackbox.py"
 _KWIL_SCHEMA_RE = re.compile(
     r"@caller|\baction\s+\w+\s*\([^)]*\)\s*(public|private|owner|view)|kuneiform|kwilteam/kwil-db|trufnetwork/kwil-db|kwild",
     re.IGNORECASE)

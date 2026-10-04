@@ -3,10 +3,10 @@
 test_linters.py — Regression tests for WAF-safe linter and voice-tone linter.
 
 Run with:
-    py -3 -X utf8 -m pytest bug-bounty-toolkit/tests/test_linters.py -v
+    py -3 -X utf8 -m pytest tests/test_linters.py -v
 
 Or without pytest (raw):
-    py -3 -X utf8 bug-bounty-toolkit/tests/test_linters.py
+    py -3 -X utf8 tests/test_linters.py
 
 These tests lock in the regression cases that motivated the linters:
 - WAF: the 2026-05-20 SynFutures submission that CF blocked with Ray ID 9fe98395c93abcc9

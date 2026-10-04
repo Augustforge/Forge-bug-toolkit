@@ -9,7 +9,7 @@ to the operator. BREADTH_RE requires "whole scope", these phrases bypassed it â†
 breaker let it through. Fix: a cluster detector (>=2 give-up categories) + continuation-override.
 
 System rule: the test proves FIRING on REAL give-ups + 0 FP on legit continuations.
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/paraphrase_giveup_replay.py
+Run: py -3 -X utf8 scripts/_methodology/paraphrase_giveup_replay.py
 """
 import importlib.util
 import os

@@ -53,7 +53,7 @@ import importlib.util
 
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_SCRIPTS_DIR = os.path.dirname(os.path.dirname(_HERE))          # .../bug-bounty-toolkit/scripts
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(_HERE))          # .../scripts
 _METHOD_DIR = os.path.join(_SCRIPTS_DIR, "_methodology")
 
 
@@ -427,7 +427,7 @@ def valid_burner_signature(typed_data):
     subprocess shell flag is NOT used (list-args launch form). No `--session` is passed (this
     function's contract -- 1 argument,
     `typed_data`) -- on a REAL successful signing the harness itself will create
-    `bug-bounty-toolkit/sessions/_scratch/onchain/` (its own fallback when
+    `sessions/_scratch/onchain/` (its own fallback when
     `--session` is absent, see `onchain_poc_harness._session_dir`) -- the calling skill, if it wants
     to write into a specific target's session folder, must call the CLI directly with `--session`;
     this function does not provide that option (see the report, concern)."""

@@ -505,7 +505,7 @@ check("case15c static: typed_data is serialized AS A WHOLE via json.dumps into O
 # NB: if this machine actually has foundry (cast) installed + a canonical burner configured (as in
 # this dev environment -- see the report), valid_burner_signature() actually SHELLS OUT to the CLI
 # (read-only sign, no broadcast) instead of returning None immediately -- this is EXPECTED and NOT
-# a bug -- the side effect is: `bug-bounty-toolkit/sessions/_scratch/onchain/typed_data_*.json`
+# a bug -- the side effect is: `sessions/_scratch/onchain/typed_data_*.json`
 # (the harness writes THERE because the function does not accept `--session` -- see the concern in
 # the report, `onchain_poc_harness.py` `_session_dir`/`cmd_sign_typed_data`). We snapshot at the
 # same level where files are ACTUALLY written (`_scratch/onchain`, not the parent `_scratch`) --

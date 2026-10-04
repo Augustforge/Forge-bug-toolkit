@@ -11,10 +11,10 @@ Fail-open EVERYWHERE: no library / no target / unreadable file / broken regex â†
 Observational: only reads the target's code and (optionally) updates ONE ledger line. Mutates nothing else.
 
 Run:
-  py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/pattern_replay.py --src <target-repo> \
-      --session-dir bug-bounty-toolkit/sessions/<slug>
+  py -3 -X utf8 scripts/_methodology/pattern_replay.py --src <target-repo> \
+      --session-dir sessions/<slug>
 Selftest:
-  py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/pattern_replay_selftest.py
+  py -3 -X utf8 scripts/_methodology/pattern_replay_selftest.py
 """
 import argparse
 import os

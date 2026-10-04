@@ -10,7 +10,7 @@ source-map бандла генерит скелет инвариантов `AC-N
 Только stdlib, детерминированно, без сети.
 
 Usage:
-    py -3 -X utf8 openapi_to_acnn.py --schema api.json --session-dir bug-bounty-toolkit/sessions/example.com
+    py -3 -X utf8 openapi_to_acnn.py --schema api.json --session-dir sessions/example.com
     py -3 -X utf8 openapi_to_acnn.py --schema-kind graphql --schema introspection.json --session-dir ...
     py -3 -X utf8 openapi_to_acnn.py --sourcemap app.js.map --session-dir ...
 """
@@ -595,7 +595,7 @@ def _main():
     ap.add_argument("--schema", help="path to OpenAPI/Swagger or GraphQL introspection JSON")
     ap.add_argument("--schema-kind", default="openapi", choices=["openapi", "graphql"])
     ap.add_argument("--sourcemap", help="path to .js.map file")
-    ap.add_argument("--session-dir", help="toolkit-rooted session dir, e.g. bug-bounty-toolkit/sessions/example.com")
+    ap.add_argument("--session-dir", help="toolkit-rooted session dir, e.g. sessions/example.com")
     args = ap.parse_args()
 
     schema = None

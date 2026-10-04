@@ -1107,7 +1107,7 @@ New surface (post-asymmetric.re 2026). Bugs where two implementations of one pro
 
 **Un-dup affinity:** `quantity-edge` (Greeks/settlement math at expiry/strike/zero-time-value edges).
 
-DeFi options & structured-product protocols (Lyra, Dopex, Ribbon/DOVs, Opyn, Premia). Value leaks through the gap between an idealized pricing model (Black-Scholes / greeks) and on-chain reality (manipulable inputs, discrete settlement, epoch boundaries). Companion attack-tree: `bug-bounty-toolkit/attack-trees/options-attack-tree.md`. Source: ugwst-sec `attack-trees/options-attack-tree.md` + `patterns/hook-attacks.md` family.
+DeFi options & structured-product protocols (Lyra, Dopex, Ribbon/DOVs, Opyn, Premia). Value leaks through the gap between an idealized pricing model (Black-Scholes / greeks) and on-chain reality (manipulable inputs, discrete settlement, epoch boundaries). Companion attack-tree: `attack-trees/options-attack-tree.md`. Source: ugwst-sec `attack-trees/options-attack-tree.md` + `patterns/hook-attacks.md` family.
 
 ### 19.1 — Implied-volatility / greeks manipulation
 **Signature:** IV (or delta/gamma/vega) is derived from on-chain state (pool utilization, recent trades, an AMM mark) and feeds option price. Attacker moves that state in-block → mispriced option → buy underpriced / sell overpriced.
@@ -1132,7 +1132,7 @@ DeFi options & structured-product protocols (Lyra, Dopex, Ribbon/DOVs, Opyn, Pre
 
 **Un-dup affinity:** `assumption-mining` (claim-eligibility conditions stated in docs — "covered only if" — rarely enforced identically on-chain).
 
-Coverage platforms (Nexus Mutual, InsurAce, Unslashed, Risk Harbor). Unique surface: the protocol pays out on an *event*, so attacks game the asymmetry between buying cover, triggering/claiming, and the capital pool's solvency accounting. Companion attack-tree: `bug-bounty-toolkit/attack-trees/insurance-attack-tree.md`. Source: ugwst-sec `attack-trees/insurance-attack-tree.md`.
+Coverage platforms (Nexus Mutual, InsurAce, Unslashed, Risk Harbor). Unique surface: the protocol pays out on an *event*, so attacks game the asymmetry between buying cover, triggering/claiming, and the capital pool's solvency accounting. Companion attack-tree: `attack-trees/insurance-attack-tree.md`. Source: ugwst-sec `attack-trees/insurance-attack-tree.md`.
 
 ### 20.1 — Front-run / immediate-cover exploit (buy cover knowing the loss)
 **Signature:** cover becomes active with no (or too-short) waiting period; attacker who already knows of an exploitable bug (own or third-party) buys cover, then triggers/realises the loss and claims. Pure asymmetric-information drain.
@@ -1155,7 +1155,7 @@ Coverage platforms (Nexus Mutual, InsurAce, Unslashed, Risk Harbor). Unique surf
 
 **Un-dup affinity:** `quantity-edge` (funding-rate math at zero/extreme skew) · secondary `cross-process` (funding-accrual timing interleaved with position changes).
 
-Perp DEXs (GMX, dYdX, Perp Protocol, Hyperliquid, Gains). The class-specific surface is the **funding mechanism, mark-vs-index split, and ADL/liquidation accounting** — on top of generic oracle (Cat 5) and liquidation (Cat 8) issues. The protocol-class profile lives in `scripts/web3/threat_models/_PROTOCOL_PROFILES.md` (`perps_deriv`); this class carries the bug taxonomy, profile carries invariants (Σ PnL = 0 etc.) — do not duplicate. Companion attack-tree: `bug-bounty-toolkit/attack-trees/perpetuals-attack-tree.md`. Source: ugwst-sec `attack-trees/perpetuals-attack-tree.md`.
+Perp DEXs (GMX, dYdX, Perp Protocol, Hyperliquid, Gains). The class-specific surface is the **funding mechanism, mark-vs-index split, and ADL/liquidation accounting** — on top of generic oracle (Cat 5) and liquidation (Cat 8) issues. The protocol-class profile lives in `scripts/web3/threat_models/_PROTOCOL_PROFILES.md` (`perps_deriv`); this class carries the bug taxonomy, profile carries invariants (Σ PnL = 0 etc.) — do not duplicate. Companion attack-tree: `attack-trees/perpetuals-attack-tree.md`. Source: ugwst-sec `attack-trees/perpetuals-attack-tree.md`.
 
 ### 21.1 — Funding-rate manipulation / griefing
 **Signature:** funding rate is a function of open-interest imbalance or mark-index spread; attacker opens a large (or many small) positions to skew funding and extract payments from the other side, or spams tiny positions to disrupt the funding calc.

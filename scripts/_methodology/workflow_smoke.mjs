@@ -12,7 +12,7 @@
 // NOTE: the regexes below that match script output (prompts/log lines) are written in English to match the
 // English prompts/log lines of the workflow scripts.
 //
-// Run: node bug-bounty-toolkit/scripts/_methodology/workflow_smoke.mjs
+// Run: node scripts/_methodology/workflow_smoke.mjs
 
 import fs from 'node:fs'
 import path from 'node:path'

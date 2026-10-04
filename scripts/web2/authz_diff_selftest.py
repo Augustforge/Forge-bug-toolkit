@@ -71,7 +71,7 @@ Proves:
       row PROVEN-CHAIN and emits a gate-compatible D-NN row; and a registry whose recorded owner
       DISAGREES with the leaked owner does NOT fabricate a chain (anti-FP).
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/authz_diff_selftest.py
+Run: py -3 -X utf8 scripts/web2/authz_diff_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys
@@ -214,7 +214,7 @@ try:
     check("case8b run_authz_matrix: file physically exists at that exact path",
           os.path.isfile(expected_path), "path=%r" % (expected_path,))
     # CWD-independent: from repo root, the bare CWD-relative dir differs from TMP_SESSION_DIR (the
-    # toolkit-rooted dir), so finding it absent proves nothing landed there. From bug-bounty-toolkit/
+    # toolkit-rooted dir), so finding it absent proves nothing landed there. From 
     # itself, the bare CWD-relative dir IS TMP_SESSION_DIR (os.getcwd() == .../bug-bounty-toolkit) --
     # in that case the two coincide and the check is vacuously true (nothing bare-vs-toolkit-rooted
     # left to distinguish; the file legitimately exists at the one true toolkit-rooted location).

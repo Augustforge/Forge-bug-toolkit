@@ -18,7 +18,7 @@ The kill in ArcadiaFi was the COMPOSITION (A)x(B)x(C), so this detector reports 
 signal independently per file and highlights files carrying more than one — those are the
 cross-thread-synthesis candidates.
 
-See: bug-bounty-toolkit/methodology/hypothesis_taxonomy.md Cat 9.7.
+See: methodology/hypothesis_taxonomy.md Cat 9.7.
 
 Usage:
     py -3 -X utf8 breaker_rearm_cooldown.py <path-to-sol-src> [--json out.json] [--all]

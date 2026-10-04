@@ -6,7 +6,7 @@ Checks the personal memory dir (~/.claude/projects/.../memory) for:
   2. self-referential [[links]] (a file linking itself)
   3. MEMORY.md index drift (files not indexed / index entries with no file)
 
-Run before ending a session:  py -3 -X utf8 bug-bounty-toolkit/scripts/_memory_lint.py
+Run before ending a session:  py -3 -X utf8 scripts/_memory_lint.py
 Exit 0 = clean, 1 = problems. Toolkit-file refs (e.g. [[stop_signals.md]]) are VALID and not flagged.
 """
 import io, sys, re, os, glob
@@ -17,7 +17,7 @@ MEMDIR = os.path.expanduser(
 # fallback to the known absolute path on this machine
 if not os.path.isdir(MEMDIR):
     MEMDIR = r"<HOME>/.claude/projects/c--Users--------------Desktop-Hackig-everything/memory"
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # bug-bounty-toolkit/
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 
 
 def norm(s): return s.replace('-', '').replace('_', '').replace('.md', '').lower()
 

@@ -45,11 +45,11 @@ def mk_tr(edits=None, reads=None, toolkit=None):
     for slug in (edits or []):
         lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
             {"type": "tool_use", "name": "Edit",
-             "input": {"file_path": "bug-bounty-toolkit/sessions/%s/hypotheses.md" % slug}}]}}))
+             "input": {"file_path": "sessions/%s/hypotheses.md" % slug}}]}}))
     for slug in (reads or []):
         lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
             {"type": "tool_use", "name": "Read",
-             "input": {"file_path": "bug-bounty-toolkit/sessions/%s/hypotheses.md" % slug}}]}}))
+             "input": {"file_path": "sessions/%s/hypotheses.md" % slug}}]}}))
     for fp in (toolkit or []):
         lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
             {"type": "tool_use", "name": "Edit", "input": {"file_path": fp}}]}}))
@@ -73,7 +73,7 @@ try:
 
     # 2) META-EXCLUSION: the session edits toolkit code (scripts/hooks) → NOT armed, even if it edited a ledger.
     mk("_lstest_b")
-    tp = mk_tr(edits=["_lstest_b"], toolkit=["bug-bounty-toolkit/scripts/hooks/hunt_completeness_gate.py"])
+    tp = mk_tr(edits=["_lstest_b"], toolkit=["scripts/hooks/hunt_completeness_gate.py"])
     r2 = g._ledger_state_active("sid-B", tp)
     check("2 META-EXCL: the session edited toolkit code → NOT armed (debugging, not a hunt)",
           not r2 and not armed("_lstest_b"), "r=%s" % r2)
@@ -126,14 +126,14 @@ try:
           r9 and mk_owner == "sid-I", "r=%s owner=%s" % (r9, mk_owner))
 
     # 10) _session_ledger_edits contract: Edit → edited, toolkit → is_meta.
-    ed, meta = g._session_ledger_edits(mk_tr(edits=["_lstest_a"], toolkit=["bug-bounty-toolkit/scripts/_methodology/x.py"]))
+    ed, meta = g._session_ledger_edits(mk_tr(edits=["_lstest_a"], toolkit=["scripts/_methodology/x.py"]))
     check("10 _session_ledger_edits: Edit ledger + toolkit-edit → edited+is_meta",
           "_lstest_a" in ed and meta, "ed=%s meta=%s" % (sorted(ed), meta))
 
     # 11) META-GUARD (2026-08-18): a pure debug session (edits ONLY toolkit, does not touch ledgers) →
     #     is_meta=True. This catches the main() guard `if _is_meta: sys.exit(0)` ON TOP of the owned marker — the entry hook
     #     arms the hunt with my sid on a mention, but the meta guard still does not let my session be held.
-    ed2, meta2 = g._session_ledger_edits(mk_tr(toolkit=["bug-bounty-toolkit/scripts/hooks/hunt_completeness_gate.py"]))
+    ed2, meta2 = g._session_ledger_edits(mk_tr(toolkit=["scripts/hooks/hunt_completeness_gate.py"]))
     check("11 META-GUARD: pure toolkit session (0 ledger-edits) → is_meta (the main guard releases the marker owner)",
           meta2 and not ed2, "meta=%s ed=%s" % (meta2, sorted(ed2)))
 

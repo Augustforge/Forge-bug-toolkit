@@ -374,7 +374,7 @@ i.e. the live-current check happens EARLY, not after the PoC.
 
 ## 5. T13 — `system_model.md` (the artifact)
 
-Lives next to `hypotheses.md` in `bug-bounty-toolkit/sessions/{target}/`. Created by an entry hook from a
+Lives next to `hypotheses.md` in `sessions/{target}/`. Created by an entry hook from a
 template — like `hypotheses.md`, so that "forgetting to create it" is physically impossible.
 
 **Why a separate file:** the hypothesis for why "at depth 3 everything is clean" is not laziness but the **degradation of working
@@ -407,7 +407,7 @@ but not the **model of the system**. The fifth layer must rely on what was writt
 **The problem.** `system_model.md` is born and dies inside a single hunt. So T10 costs the same
 every time, and knowledge gained on Wormhole-NTT does not make the next NTT fork cheaper.
 
-**The solution.** A cross-hunt library `bug-bounty-toolkit/methodology/invariant_library.md`,
+**The solution.** A cross-hunt library `methodology/invariant_library.md`,
 keyed by **primitive**, not target: `ERC721/OZ-v5` · `Wormhole-NTT` · `UniswapV2-fork` · `Anchor-PDA` ·
 `Cosmos-SDK-module` · `halo2-gadget` · `Pyth-pull` · `QBFT`. Under the key — a list of invariants with
 **how the reference enforces them** (`file:line` in the reference implementation).
@@ -825,7 +825,7 @@ accuracy of findings; `blind_spots.md` measures **class coverage** — what we d
 
 A survey of the tree gave three facts that make the plan much cheaper:
 
-1. **`bug-bounty-toolkit/scripts/_methodology/hunt_driver.workflow.js` ALREADY EXISTS** — a working
+1. **`scripts/_methodology/hunt_driver.workflow.js` ALREADY EXISTS** — a working
    Workflow driver with phases `Depth / Verify / Rotate`, a `schema`-forced return (`ROUND_SCHEMA`,
    `VERDICT_SCHEMA`), a budget guard and rotation of T9 axes. Phase 3 = an **extension**, not writing from scratch.
 2. **A panel of lenses is ALREADY implemented in it** (`lenses = ['correctness/guard', 'severity/de-minimis',
@@ -841,12 +841,12 @@ A survey of the tree gave three facts that make the plan much cheaper:
    not in `dapphunt.md`, not in `CLAUDE.md`, not in any hook. Nobody calls it. So phase 3
    "extend the existing driver" extends **dead code**, and its metric will be empty.
    **The mandatory step zero of phase 3 is WIRING:** an explicit beat in `/deephunt` (a launch condition +
-   `Workflow({scriptPath:'bug-bounty-toolkit/scripts/_methodology/hunt_driver.workflow.js',
+   `Workflow({scriptPath:'scripts/_methodology/hunt_driver.workflow.js',
    args:{slug}})`) and a line in `CLAUDE.md` §4. Without wiring, driver edits are not verifiable at all.
 
 ### 11.1 Methodology — the core
 
-**`bug-bounty-toolkit/methodology/mythos_techniques.md`**
+**`methodology/mythos_techniques.md`**
 
 | What | Where exactly |
 |---|---|
@@ -858,7 +858,7 @@ A survey of the tree gave three facts that make the plan much cheaper:
 | Rows T10-T14 in the integration table | `## Per-Skill Integration Map` (`:1008-1019`) |
 | The SELECT table "three objective generators of a PLACE + the source-intersection rule" | the same Hunt-Loop Spine block, next to the `D-NN` priority |
 
-**`bug-bounty-toolkit/methodology/hypothesis_taxonomy.md`** — an optional and minor edit: mark
+**`methodology/hypothesis_taxonomy.md`** — an optional and minor edit: mark
 that an `ABSENT` invariant from T10 is a legitimate entry into the taxonomy on a par with code-read (so that the Layer-1
 cross-check is applied to it as well).
 
@@ -866,13 +866,13 @@ cross-check is applied to it as well).
 
 | File | Action |
 |---|---|
-| `bug-bounty-toolkit/sessions/_methodology/system_model_template.md` | **CREATE** — the T13 template (9 sections from §5, **5 statuses** of enforcement incl. `SUBSTITUTED`, class `state\|economic`, the fields `tests: N` and **`component:`**, a header with the **≤12 limit**) |
-| `bug-bounty-toolkit/sessions/_methodology/independent_model_first.md` | **CREATE** — the operational T10 checklist (modeled on `scout_fanout.md`): corpus → I-NN (**limit ≤12**) → **5 statuses** → **the operator "is the mechanism canonical?"** → ranker (**incl. convergence**) → feedback; blocks "no corpus", "T10-B family diff", "anti-anchor (**senior tier**)", "when NOT to apply" |
-| `bug-bounty-toolkit/sessions/_methodology/attention_gap_mapping.md` | **CREATE** — the T14 checklist (A: how to build an attention map from reports and look for holes · B: the list of git signals of haste) |
-| `bug-bounty-toolkit/sessions/_methodology/blind_spots.md` | **CREATE already in phase 1** (develop in phase 5) — bug classes that we have **never** found; maintained after each hunt and from the "silent generators" of §10. The first entry was already earned by phase 0: "a canonical mechanism is by default considered present" |
-| 🔴 `bug-bounty-toolkit/methodology/invariant_library.md` | **CREATE (idea A), phase 1** — a cross-hunt library of invariants by **primitive** (`ERC721/OZ-v5`, `Wormhole-NTT`, `UniswapV2-fork`, `Anchor-PDA`, `Cosmos-SDK`, `halo2-gadget`, `Pyth-pull`, `QBFT`); under each — the invariant + how the REFERENCE enforces it with the reference's `file:line` + the **`fingerprint:` of the canonical mechanism (idea E)** — an import/base contract/signature/storage shape by which a substitution is caught by grep. It lives in `methodology/`, NOT in `sessions/_methodology/`, because it outlives hunts |
-| `bug-bounty-toolkit/sessions/_methodology/hypotheses_template.md` | **EDIT**: in `## Loop State` (`:98-136`) add the fields `Model:` (`I-NN total / ABSENT / ENFORCED-PARTIAL / current D-NN`) and `Prediction-miss:` (a miss counter → auto-`D-NN`); in DEPTH-MAP — the fields `boundary/predicted/observed` **+ `fan-in` (idea D)**; in `## Scout Fan-Out` (`:137`) — a note "partitions are sliced by `I-NN` if a model is built"; in the body of `### H-{NN}` (`:176`) — the field `origin:` (the source of the PLACE, for the §10 item 2 metric) |
-| `bug-bounty-toolkit/sessions/_methodology/system_model_template.md` | the sections **`## Missing Negatives`** (idea C) and **`## Long Tail`** (mitigation of the ≤12 limit) + the fields `crowd-heat` / `lib:` / **`component:`** / **`pred:` (idea F)** / **`check:` (correction 6)** in the `I-NN` table — design with them from the start, do not bolt on later |
+| `sessions/_methodology/system_model_template.md` | **CREATE** — the T13 template (9 sections from §5, **5 statuses** of enforcement incl. `SUBSTITUTED`, class `state\|economic`, the fields `tests: N` and **`component:`**, a header with the **≤12 limit**) |
+| `sessions/_methodology/independent_model_first.md` | **CREATE** — the operational T10 checklist (modeled on `scout_fanout.md`): corpus → I-NN (**limit ≤12**) → **5 statuses** → **the operator "is the mechanism canonical?"** → ranker (**incl. convergence**) → feedback; blocks "no corpus", "T10-B family diff", "anti-anchor (**senior tier**)", "when NOT to apply" |
+| `sessions/_methodology/attention_gap_mapping.md` | **CREATE** — the T14 checklist (A: how to build an attention map from reports and look for holes · B: the list of git signals of haste) |
+| `sessions/_methodology/blind_spots.md` | **CREATE already in phase 1** (develop in phase 5) — bug classes that we have **never** found; maintained after each hunt and from the "silent generators" of §10. The first entry was already earned by phase 0: "a canonical mechanism is by default considered present" |
+| 🔴 `methodology/invariant_library.md` | **CREATE (idea A), phase 1** — a cross-hunt library of invariants by **primitive** (`ERC721/OZ-v5`, `Wormhole-NTT`, `UniswapV2-fork`, `Anchor-PDA`, `Cosmos-SDK`, `halo2-gadget`, `Pyth-pull`, `QBFT`); under each — the invariant + how the REFERENCE enforces it with the reference's `file:line` + the **`fingerprint:` of the canonical mechanism (idea E)** — an import/base contract/signature/storage shape by which a substitution is caught by grep. It lives in `methodology/`, NOT in `sessions/_methodology/`, because it outlives hunts |
+| `sessions/_methodology/hypotheses_template.md` | **EDIT**: in `## Loop State` (`:98-136`) add the fields `Model:` (`I-NN total / ABSENT / ENFORCED-PARTIAL / current D-NN`) and `Prediction-miss:` (a miss counter → auto-`D-NN`); in DEPTH-MAP — the fields `boundary/predicted/observed` **+ `fan-in` (idea D)**; in `## Scout Fan-Out` (`:137`) — a note "partitions are sliced by `I-NN` if a model is built"; in the body of `### H-{NN}` (`:176`) — the field `origin:` (the source of the PLACE, for the §10 item 2 metric) |
+| `sessions/_methodology/system_model_template.md` | the sections **`## Missing Negatives`** (idea C) and **`## Long Tail`** (mitigation of the ≤12 limit) + the fields `crowd-heat` / `lib:` / **`component:`** / **`pred:` (idea F)** / **`check:` (correction 6)** in the `I-NN` table — design with them from the start, do not bolt on later |
 
 **The decision on where `D-NN` lives:** divergences live **only** in `system_model.md`; in the ledger — a reference
 and a counter in Loop State. One source of truth, no double bookkeeping.
@@ -895,7 +895,7 @@ and a counter in Loop State. One source of truth, no double bookkeeping.
 **`.claude/commands/hunt.md` and `.claude/commands/dapphunt.md`** — one reference line to `J-M`/T10
 (a light edit, so that the beat is not lost when entering not through `/deephunt`).
 
-### 11.4 Hooks — enforcement (`bug-bounty-toolkit/scripts/hooks/`, wired in `.claude/settings.json`)
+### 11.4 Hooks — enforcement (`scripts/hooks/`, wired in `.claude/settings.json`)
 
 | File | Edit |
 |---|---|
@@ -985,7 +985,7 @@ for the existence of the model **independently** of `resume`, with a separate `i
 
 ### 11.5 Workflow (graph) — extending the existing one
 
-**`bug-bounty-toolkit/scripts/_methodology/hunt_driver.workflow.js`**
+**`scripts/_methodology/hunt_driver.workflow.js`**
 
 | What | Where |
 |---|---|
@@ -1043,15 +1043,15 @@ untouched one" — but a dead gate is also silent; a "must fire" pair on a fille
 
 | File | Action |
 |---|---|
-| `bug-bounty-toolkit/scripts/_methodology/audit_coverage_invert.py` | **CREATE** (T14-A) — builds an attention map (files/functions/classes) from a set of reports and outputs the **holes** relative to the surface |
-| `bug-bounty-toolkit/scripts/_methodology/commit_archaeology.py` | **CREATE** (T14-B) — git signals of haste: commits after the audit date, `quick fix/temp/TODO/hotfix/wip`, churn, a commit without tests, a PR without review, the last commit before a release |
-| `bug-bounty-toolkit/sessions/_methodology/regression_manifest.yaml` | 🔴 **REGISTER the phase 0 corpora as the PERMANENT T10 regression harness (idea G).** The format of the existing `cases:` does not fit (they are file-recall and magnitude) — a **separate `model_eval:` block** is needed: `corpus_ref` · `ground_truth_ref` · `baseline` (A hit@2 · B hit@1-2 · C hit@1 on the senior tier) · `tier` · `anonymized: true`. It is replenished by every analyzed third-party bug (~20 min per case); the acceptance condition — **the corpus does not name the protocol**, otherwise we measure the model's memory, not the method. The source — `phase0_blind/corpus_A/B/C` + `GROUND_TRUTH.md` (written BEFORE the predictions → the harness is honest). Any edit to the T10 prompt/template/checklist must be rerun against them, otherwise an "improvement" is unmeasurable. Our own solved cases are **not suitable** for the blind test — contaminated by knowledge of the answer; their place in regression is as a check of the `ENFORCED-PARTIAL` operator |
-| `bug-bounty-toolkit/scripts/_methodology/depth_gates_replay.py` | T12 tests (a layer without an artifact is not credited) |
-| 🔴 `bug-bounty-toolkit/scripts/_methodology/template_sentinel_check.py` | **CREATED 2026-07-28** — TEMPLATE↔DETECTOR consistency on the real `hypotheses_template.md` / `system_model_template.md`: checks BOTH directions (must fire / must stay silent). Catches the class "the template is edited — the detector silently goes blind", which synthetic replay harnesses do not see. It found a second blindness at once: `active_ledger_thin` (the LEDGER-LIVE guard) counted an untouched template as filled |
-| `bug-bounty-toolkit/scripts/_methodology/gate_replay.py` | tests of the new model gates: `missing` · `unmapped` · `no_partial_pass` · `divergence_unresolved` · `shotgun` · `canon_unchecked` · `check_missing` · `econ_slop` · `pred_posthoc` · `negatives_missing` · `hot_unprocessed` · `library_not_updated` (the rule: **first the replay test, then the gate**) |
-| `bug-bounty-toolkit/scripts/_methodology/scout_gates_replay.py` | tests of partitions-by-invariants |
-| `bug-bounty-toolkit/scripts/_methodology/regression_replay.py` | a run before/after each phase; recall dropped → rollback |
-| `bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl` | the new metric fields from §10 |
+| `scripts/_methodology/audit_coverage_invert.py` | **CREATE** (T14-A) — builds an attention map (files/functions/classes) from a set of reports and outputs the **holes** relative to the surface |
+| `scripts/_methodology/commit_archaeology.py` | **CREATE** (T14-B) — git signals of haste: commits after the audit date, `quick fix/temp/TODO/hotfix/wip`, churn, a commit without tests, a PR without review, the last commit before a release |
+| `sessions/_methodology/regression_manifest.yaml` | 🔴 **REGISTER the phase 0 corpora as the PERMANENT T10 regression harness (idea G).** The format of the existing `cases:` does not fit (they are file-recall and magnitude) — a **separate `model_eval:` block** is needed: `corpus_ref` · `ground_truth_ref` · `baseline` (A hit@2 · B hit@1-2 · C hit@1 on the senior tier) · `tier` · `anonymized: true`. It is replenished by every analyzed third-party bug (~20 min per case); the acceptance condition — **the corpus does not name the protocol**, otherwise we measure the model's memory, not the method. The source — `phase0_blind/corpus_A/B/C` + `GROUND_TRUTH.md` (written BEFORE the predictions → the harness is honest). Any edit to the T10 prompt/template/checklist must be rerun against them, otherwise an "improvement" is unmeasurable. Our own solved cases are **not suitable** for the blind test — contaminated by knowledge of the answer; their place in regression is as a check of the `ENFORCED-PARTIAL` operator |
+| `scripts/_methodology/depth_gates_replay.py` | T12 tests (a layer without an artifact is not credited) |
+| 🔴 `scripts/_methodology/template_sentinel_check.py` | **CREATED 2026-07-28** — TEMPLATE↔DETECTOR consistency on the real `hypotheses_template.md` / `system_model_template.md`: checks BOTH directions (must fire / must stay silent). Catches the class "the template is edited — the detector silently goes blind", which synthetic replay harnesses do not see. It found a second blindness at once: `active_ledger_thin` (the LEDGER-LIVE guard) counted an untouched template as filled |
+| `scripts/_methodology/gate_replay.py` | tests of the new model gates: `missing` · `unmapped` · `no_partial_pass` · `divergence_unresolved` · `shotgun` · `canon_unchecked` · `check_missing` · `econ_slop` · `pred_posthoc` · `negatives_missing` · `hot_unprocessed` · `library_not_updated` (the rule: **first the replay test, then the gate**) |
+| `scripts/_methodology/scout_gates_replay.py` | tests of partitions-by-invariants |
+| `scripts/_methodology/regression_replay.py` | a run before/after each phase; recall dropped → rollback |
+| `sessions/_methodology/calibration_log.jsonl` | the new metric fields from §10 |
 
 ### 11.7 The project's `CLAUDE.md` (root) — last, when the mechanics already work
 

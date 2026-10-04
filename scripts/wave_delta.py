@@ -29,7 +29,7 @@ CLI:
   py -3 -X utf8 wave_delta.py delta    <slug> --src <path> [--save]
   py -3 -X utf8 wave_delta.py show     <slug>
 
-<slug> → bug-bounty-toolkit/sessions/<slug>/snapshot.json
+<slug> → sessions/<slug>/snapshot.json
 Fail-soft: diagnostics to stderr, but we don't crash the pipeline without need.
 """
 import argparse

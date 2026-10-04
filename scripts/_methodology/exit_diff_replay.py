@@ -7,7 +7,7 @@ PRIOR-PATTERNS / EXPOSURE / D-NN stayed TODO/empty (1inch), with no warning. On 
 the unclosed soft gates → stderr INFO (NOT a block — exiting is the operator's prerogative).
 Test: FIRING + anti-FP.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/exit_diff_replay.py
+Run: py -3 -X utf8 scripts/_methodology/exit_diff_replay.py
 """
 import contextlib
 import importlib.util

@@ -21,7 +21,7 @@ Proves:
       attacker-controlled Origin never lands in evidence; fixes the guard-gap where reflected ACAO
       skipped pi_guard_lib.scan()).
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/error_oracle_selftest.py
+Run: py -3 -X utf8 scripts/web2/error_oracle_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

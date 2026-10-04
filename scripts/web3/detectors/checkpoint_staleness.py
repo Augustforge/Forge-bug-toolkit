@@ -28,7 +28,7 @@ The detector flags two signals and ranks by their co-occurrence:
 A site with BOTH is the high-risk Tranchess shape. This tool does NOT prove a bug —
 every flag needs the manual "can I order ops so the snapshot is stale?" check.
 
-See: bug-bounty-toolkit/methodology/hypothesis_taxonomy.md Cat 9.6.
+See: methodology/hypothesis_taxonomy.md Cat 9.6.
 
 Usage:
     py -3 -X utf8 checkpoint_staleness.py <path-to-sol-src> [--json out.json] [--all]

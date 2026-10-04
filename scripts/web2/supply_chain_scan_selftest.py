@@ -17,7 +17,7 @@ the producer writes a co-located toolkit-rooted artifact with a RESULT line, and
  (7) fail-open: broken JSON / missing files never raise; run_supply_chain_scan always writes artifact.
  (8) isolation: artifact written to EXACT {session_dir}/supply_chain.md, nothing under bare CWD sessions/.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/supply_chain_scan_selftest.py
+Run: py -3 -X utf8 scripts/web2/supply_chain_scan_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

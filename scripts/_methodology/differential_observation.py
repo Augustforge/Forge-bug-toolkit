@@ -286,7 +286,7 @@ class Divergence(object):
             self.dclass, self.ctx_pair, self.severity_seed)
 
     def to_dnn_row(self):
-        """A `## Divergences` row (format bug-bounty-toolkit/sessions/_methodology/
+        """A `## Divergences` row (format sessions/_methodology/
         system_model_web_template.md) that hunt_completeness_gate._D_ROW_RE matches and that
         active_divergence_unresolved keeps OPEN (the last resolution cell is always empty -- no
         `-> H-NN` / `KILLED file:line`). 12 columns (Task 3, FDE Plan 6 §48.2/§44/§50.3 -- was 11):

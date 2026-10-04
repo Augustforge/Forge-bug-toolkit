@@ -22,7 +22,7 @@ Proves FIRING (not just absence of FP):
  (3) End-to-end: candidate fields from mass_assignment_fields() -> write_plan -> mass_assignment_diff
      detects the persisted privileged field.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/mass_assignment_prover_selftest.py
+Run: py -3 -X utf8 scripts/web2/mass_assignment_prover_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

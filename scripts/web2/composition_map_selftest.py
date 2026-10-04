@@ -16,7 +16,7 @@ Proves:
  (7) run_composition_map: writes to EXACTLY {session_dir}/composition_map.md (co-located, toolkit-
      rooted, never CWD-relative bare sessions/); RESULT line always present, even 0-edge run.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/composition_map_selftest.py
+Run: py -3 -X utf8 scripts/web2/composition_map_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

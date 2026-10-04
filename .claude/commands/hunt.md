@@ -18,7 +18,7 @@ argument-hint: "[domain] | без аргумента = проактивный р
 
 **Если пусто** → **проактивный режим**.
 
-**Auto-routing**: первый шаг — `python3 bug-bounty-toolkit/scripts/chain_detect.py --target $ARGUMENTS` определяет chain и framework (это РОУТ, не хант — сам `/hunt` EVM/Solana не хантит). evm/solana-вердикт → выведи the operator роут-однострочник на `/deephunt $ARGUMENTS`; web2/kwil-вердикт → продолжаем web2-профилем ниже.
+**Auto-routing**: первый шаг — `python3 scripts/chain_detect.py --target $ARGUMENTS` определяет chain и framework (это РОУТ, не хант — сам `/hunt` EVM/Solana не хантит). evm/solana-вердикт → выведи the operator роут-однострочник на `/deephunt $ARGUMENTS`; web2/kwil-вердикт → продолжаем web2-профилем ниже.
 
 ---
 
@@ -35,7 +35,7 @@ argument-hint: "[domain] | без аргумента = проактивный р
 
 ## Методология (shared across /hunt, /deephunt, /dapphunt)
 
-Перед началом любого hunt — прочитай [`bug-bounty-toolkit/methodology/mythos_techniques.md`](bug-bounty-toolkit/methodology/mythos_techniques.md). Core discipline:
+Перед началом любого hunt — прочитай [`methodology/mythos_techniques.md`](methodology/mythos_techniques.md). Core discipline:
 
 - **Hunt-Loop spine (run-mode, ALWAYS-ON)** — хант идёт как самокрутящаяся петля: вход поднимает
   `.hunt_active` → 1 гипотеза/итерация (single-pick) → T2+depth-ceiling → refute требует falsifier'а
@@ -57,10 +57,10 @@ argument-hint: "[domain] | без аргумента = проактивный р
 - **T3 — Exploit Chaining Discipline** — обязательная проверка в Phase 9 (report) перед submission
 - **T4 — Two-Agent Verifier Pass (MANDATORY GATE)** — для КАЖДОЙ Med+ находки перед Phase 9 submission. Cold-context subagent re-derives finding from raw `file:line` + PoC. Kill / 2-tier-downgrade / silent-precondition flag = NO submission. No exceptions.
 - **T5 — Patch-Diff Hypothesis Seeding** — Phase 2.5 NEW step 0: если target имеет audit reports / recent commits — `git diff audit_commit..HEAD` → каждый hunk = seed hypothesis. Skip если fresh deploy без audit
-- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies during Phase 2.5 alongside single-vector hypotheses AND on every D-Kill (refuted vector = building block, re-chain). High-payout bugs are chains (Echo Monad, Transit, Wormhole). Direct sweep: [`bug-bounty-toolkit/methodology/hypothesis_taxonomy.md`](../../bug-bounty-toolkit/methodology/hypothesis_taxonomy.md) — walk taxonomy as sweep checklist, pair classes via "Composite Pair Affinities" table.
+- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies during Phase 2.5 alongside single-vector hypotheses AND on every D-Kill (refuted vector = building block, re-chain). High-payout bugs are chains (Echo Monad, Transit, Wormhole). Direct sweep: [`methodology/hypothesis_taxonomy.md`](../../methodology/hypothesis_taxonomy.md) — walk taxonomy as sweep checklist, pair classes via "Composite Pair Affinities" table.
 - **T7 — Canonical `hypotheses.md` registry** — create at session start (Phase 2.5), update live, MANDATORY artifact. Template + protocol in `mythos_techniques.md` Technique 7.
 - **Browser-first (обязательно):** оба скилла работают через живой браузер под OPSEC-gate — см.
-  `bug-bounty-toolkit/sessions/_methodology/browser_first_mandate.md`.
+  `sessions/_methodology/browser_first_mandate.md`.
 
 ---
 
@@ -70,16 +70,16 @@ argument-hint: "[domain] | без аргумента = проактивный р
 
 ### Фаза 1 — Setup
 ```bash
-mkdir -p bug-bounty-toolkit/sessions/$DOMAIN
+mkdir -p sessions/$DOMAIN
 ```
 Создай `status.md` с пометкой "in-progress" и датой.
 
-**⛔ Completeness-gate обычно уже поднят ВХОДНЫМ хуком** `hunt_entry_gate.py` (на hunt-URL сам создаёт `.hunt_active`+ledger). Если нет — создай маркер `bug-bounty-toolkit/sessions/$DOMAIN/.hunt_active`. Включает Stop-хук `hunt_completeness_gate.py`, который в **автономном режиме** держит turn и форсит next single-pick. **ВЫХОД ровно один:** `HUNT-EXIT: T4-CONFIRMED <sev>` в ledger (после реального T4) ЛИБО the operator «уходим». Каждый блок бампает mtime маркера → длинная петля не протухает (TTL 24ч). См. [[reference_brutecat_ai]].
+**⛔ Completeness-gate обычно уже поднят ВХОДНЫМ хуком** `hunt_entry_gate.py` (на hunt-URL сам создаёт `.hunt_active`+ledger). Если нет — создай маркер `sessions/$DOMAIN/.hunt_active`. Включает Stop-хук `hunt_completeness_gate.py`, который в **автономном режиме** держит turn и форсит next single-pick. **ВЫХОД ровно один:** `HUNT-EXIT: T4-CONFIRMED <sev>` в ledger (после реального T4) ЛИБО the operator «уходим». Каждый блок бампает mtime маркера → длинная петля не протухает (TTL 24ч). См. [[reference_brutecat_ai]].
 
 ### Фаза 2 — Passive recon (нулевой след)
 Параллельно (один Bash-блок, несколько вызовов):
-- `python3 bug-bounty-toolkit/scripts/github_recon.py --domain $DOMAIN --output bug-bounty-toolkit/sessions/$DOMAIN`
-- `python3 bug-bounty-toolkit/scripts/email_security.py --domain $DOMAIN --output bug-bounty-toolkit/sessions/$DOMAIN`
+- `python3 scripts/github_recon.py --domain $DOMAIN --output sessions/$DOMAIN`
+- `python3 scripts/email_security.py --domain $DOMAIN --output sessions/$DOMAIN`
 - crt.sh через curl
 - Wayback urls через `docker run bbt waybackurls`
 
@@ -90,15 +90,15 @@ mkdir -p bug-bounty-toolkit/sessions/$DOMAIN
 > Буквенная фаза вне числовой шкалы, между Фазой 2 (recon уже собран) и Фазой 2.5 (hypothesis-gen ещё
 > не тронул эндпоинты/код). Зеркалит `J-M` в `/deephunt` и `Phase P-SM` в `/dapphunt` — там namespace
 > `TB-` (7 осей доверия dApp), здесь `AC-` (8 осей контроля доступа web2-app: 6 базовых + условные ai-trust/supply-chain).
-> Артефакт: `bug-bounty-toolkit/sessions/$DOMAIN/system_model.md` (toolkit-rooted, `dirname(ledger)`) из
-> [`system_model_web_template.md`](../../bug-bounty-toolkit/sessions/_methodology/system_model_web_template.md).
+> Артефакт: `sessions/$DOMAIN/system_model.md` (toolkit-rooted, `dirname(ledger)`) из
+> [`system_model_web_template.md`](../../sessions/_methodology/system_model_web_template.md).
 
 **Цель**: объективный источник МЕСТА ДО активного теста — расхождение между тем, какой access-control
 эндпоинт ОБЯЗАН держать, и тем, что реально enforced. Не «странный эндпоинт», а инвариант, который толпа
 тоже считает закрытым.
 
 **Корпус (эндпоинты ещё НЕ атаковать)**: OpenAPI/Swagger/GraphQL-схема (если найдена — прогони
-`py -3 -X utf8 bug-bounty-toolkit/scripts/web2/openapi_to_acnn.py --schema api.json --session-dir bug-bounty-toolkit/sessions/$DOMAIN`,
+`py -3 -X utf8 scripts/web2/openapi_to_acnn.py --schema api.json --session-dir sessions/$DOMAIN`,
 даёт скелет `AC-NN` + `endpoint_scoremap.md`), публичные API-docs, роли из UI (admin panel / user tiers /
 billing tiers), passive HTTP (Фаза 2), прошлые репорты (HackerOne Hacktivity / Bugcrowd disclosed) на тот
 же стек. Нет схемы → суррогат: js_mining (Фаза 4) + passive endpoint discovery + **mobile-bundle
@@ -170,56 +170,56 @@ Mindset: *"Какой access-control ОБЯЗАН держаться на это
 > (кандидаты, не пробы). Заголовок и общая структура (T1 rubric → triage → pre-flight → registry) —
 > постоянный каркас, не трогать.
 
-**Step 0 — T5 Patch-Diff Seeding (применяй если target имеет audit history ИЛИ recent commits ≤90 дней)**: следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding). Найди audit_commit (из report cover page), `git diff audit_commit..HEAD > bug-bounty-toolkit/sessions/$TARGET/post_audit_drift.diff`, drop test/mock/comment hunks, для каждого surviving hunk напиши seed hypothesis по template "pre-audit X → post-audit Y → invariant Z breaks". Эти seeded hypotheses идут FIRST в T2 queue (highest expected Crit ROI). Skip step 0 если target без audit и без recent commits.
+**Step 0 — T5 Patch-Diff Seeding (применяй если target имеет audit history ИЛИ recent commits ≤90 дней)**: следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding). Найди audit_commit (из report cover page), `git diff audit_commit..HEAD > sessions/$TARGET/post_audit_drift.diff`, drop test/mock/comment hunks, для каждого surviving hunk напиши seed hypothesis по template "pre-audit X → post-audit Y → invariant Z breaks". Эти seeded hypotheses идут FIRST в T2 queue (highest expected Crit ROI). Skip step 0 если target без audit и без recent commits.
 
 > **Mindset**: "Какую гипотезу о таргете я могу проверить, чтобы найти то что никто не догадался?"
 >
 > Реальные High найдены так: **асимметрии** между sibling функциями/эндпоинтами, **комментарии о fix** без реального fix, **inconsistent guards**. НЕ тулами.
 
-1. **Прочитай top-3 файла/эндпоинт-группы** руками. Применяй T1 rubric из [`methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric): score every file 1-5 по attack surface (parses attacker input / crypto / deserialization / auth gate = score 5), пиши output в `bug-bounty-toolkit/sessions/$TARGET/attack_surface_rubric.md`, далее читай score-5 files first. Не sкипать.
+1. **Прочитай top-3 файла/эндпоинт-группы** руками. Применяй T1 rubric из [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric): score every file 1-5 по attack surface (parses attacker input / crypto / deserialization / auth gate = score 5), пиши output в `sessions/$TARGET/attack_surface_rubric.md`, далее читай score-5 files first. Не sкипать.
 
 2. **Enforcement-map sweep (ПЕРВЫЙ источник, из Phase P-AM)** — пройди `## Divergences` в
-   `bug-bounty-toolkit/sessions/$DOMAIN/system_model.md` по ранкеру (`blast-radius × sibling-count ×
+   `sessions/$DOMAIN/system_model.md` по ранкеру (`blast-radius × sibling-count ×
    crowd-cold × convergence ÷ crowd-heat`), сверху вниз. Каждый `D-NN` → одна hypothesis-кандидат: не
    пропускай, не выбирай "по вкусу" — ранкер уже расставил приоритет, обработай весь список.
 
 3. **`endpoint_scoremap.md` sweep** — если Phase P-AM прогнал `openapi_to_acnn.py`, читай
-   `bug-bounty-toolkit/sessions/$DOMAIN/endpoint_scoremap.md`: score-5 эндпоинты (unauth-write /
+   `sessions/$DOMAIN/endpoint_scoremap.md`: score-5 эндпоинты (unauth-write /
    sensitive-field в ответе /
    admin-scoped путь без явного guard) → object-authz(BOLA)/function-authz(BFLA) гипотезы. Схемы нет →
    суррогат из `js_mining` (Фаза 4, ниже) + passive endpoint-discovery.
 
-4. **Business-logic static pass** — прогони `bug-bounty-toolkit/scripts/web2/business_logic.py`
+4. **Business-logic static pass** — прогони `scripts/web2/business_logic.py`
    (`race_candidates` / `method_matrix` / `mass_assignment_fields` / `analyze_business_flow`) над
    UI-flow'ами, собранными в Фазе 2/4 (checkout / signup / password-reset / balance-transfer и т.п.).
    Каждый найденный flow-step → строка `BL-NN` в `## Business Logic` (`system_model.md`, ось
    business-logic из Phase P-AM).
 
 5. **Input-sink sweep (кандидаты, НЕ пробы)** — грепни исходники/JS-бандл (Фаза 4) на SQLi/SSTI/SSRF/
-   deserialization синки (см. `bug-bounty-toolkit/scripts/web2/payloads/*.md` для сигнатур классов). Здесь
+   deserialization синки (см. `scripts/web2/payloads/*.md` для сигнатур классов). Здесь
    только СОБРАТЬ кандидаты `file:line`/endpoint — реальный differential-тест этих синков делает
    `error_oracle.py` в Активной фазе (Ф5-6), не здесь (Ф2.5 — read-only generation, не active probe).
 
-6. **Triage** — каждой hypothesis из aggregation присвоить tag: `REFUTED` / `PLAUSIBLE` / `INTERESTING` / `NEEDS_DEEP`. Только PLAUSIBLE+INTERESTING+NEEDS_DEEP идут в final list. REFUTED сохрани в `bug-bounty-toolkit/sessions/$TARGET/refuted_hypotheses.md` для learning loop.
+6. **Triage** — каждой hypothesis из aggregation присвоить tag: `REFUTED` / `PLAUSIBLE` / `INTERESTING` / `NEEDS_DEEP`. Только PLAUSIBLE+INTERESTING+NEEDS_DEEP идут в final list. REFUTED сохрани в `sessions/$TARGET/refuted_hypotheses.md` для learning loop.
 
 6.4. 🔴 **Заход с РЕПО (source доступен)? — рассмотри T10 Independent Model First** перед чтением кода:
    модель системы ДО реализации → `I-NN`/`AC-I` → место, где инвариант не enforced (для web2 это уже
    покрыто **Phase P-AM** выше — здесь релевантно, если репо не чисто HTTP-API, напр. embedded worker/CLI).
-   Чеклист: [`independent_model_first.md`](bug-bounty-toolkit/sessions/_methodology/independent_model_first.md),
+   Чеклист: [`independent_model_first.md`](sessions/_methodology/independent_model_first.md),
    полная фаза — `J-M` в `/deephunt`. Мелкий сервис (<300 LOC) / чистый статик-сайт → пропускать законно.
 
-6.5. **Pre-flight quality check (MANDATORY)** — для каждой surviving hypothesis (PLAUSIBLE+INTERESTING+NEEDS_DEEP) open [`bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md`](bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md) и **строго** apply 5 вопросов pre-flight checklist:
+6.5. **Pre-flight quality check (MANDATORY)** — для каждой surviving hypothesis (PLAUSIBLE+INTERESTING+NEEDS_DEEP) open [`sessions/_methodology/hypothesis_quality.md`](sessions/_methodology/hypothesis_quality.md) и **строго** apply 5 вопросов pre-flight checklist:
    - Concrete prediction (file:line / endpoint, что именно увидеть)
    - Falsifier (что опровергает)
    - Severity ceiling (quantified)
    - Cost vs payout
    - Refuted-by-read (5-min check **сейчас**)
    
-   Output: `bug-bounty-toolkit/sessions/$TARGET/hypothesis_preflight.md` со всеми hypotheses + verdict (GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP). Только GO/NEEDS_DEEP попадают в step 7.
+   Output: `sessions/$TARGET/hypothesis_preflight.md` со всеми hypotheses + verdict (GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP). Только GO/NEEDS_DEEP попадают в step 7.
    
-   Refuted записать в `bug-bounty-toolkit/sessions/$TARGET/refuted.md` (one-line каждая) — это feed для [`bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl`](bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl) (append entries после quick hunt closure).
+   Refuted записать в `sessions/$TARGET/refuted.md` (one-line каждая) — это feed для [`sessions/_methodology/calibration_log.jsonl`](sessions/_methodology/calibration_log.jsonl) (append entries после quick hunt closure).
 
-7. **Запиши 3-5 гипотез** в `bug-bounty-toolkit/sessions/$TARGET/hypotheses.md` (aggregate из P-AM `D-NN` / manual / threat_model outputs, после triage):
+7. **Запиши 3-5 гипотез** в `sessions/$TARGET/hypotheses.md` (aggregate из P-AM `D-NN` / manual / threat_model outputs, после triage):
    ```markdown
    ## H1: <one-line>
    - Source: AC-model (D-NN) / manual / past_report / threat_model:<id>
@@ -248,8 +248,8 @@ CVE-2021-3129, Django ORM-SQLi…). Прочих CMS/версий, которы�
 После стандартного fingerprint — проверь не Web3 dApp ли это:
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/dapp_detection.py --target $DOMAIN \
-    --output bug-bounty-toolkit/sessions/$DOMAIN/dapp_detection.json
+python3 scripts/dapphunt/core/dapp_detection.py --target $DOMAIN \
+    --output sessions/$DOMAIN/dapp_detection.json
 ```
 
 Output: `chain_class` (evm/solana/cosmos/move/multichain/tma/not_dapp), `auth_providers[]`, `wallet_adapters[]`, `detection_score` 0-100.
@@ -267,7 +267,7 @@ User решает явно — НЕ auto-switch. Если user выбирает 
 
 ### Фаза 4 — JS mining
 ```bash
-python3 bug-bounty-toolkit/scripts/js_mining.py --domain $DOMAIN --output bug-bounty-toolkit/sessions/$DOMAIN
+python3 scripts/js_mining.py --domain $DOMAIN --output sessions/$DOMAIN
 ```
 Если нашлись секреты или внутренние API эндпоинты — сразу в `report.md`.
 
@@ -284,7 +284,7 @@ python3 bug-bounty-toolkit/scripts/js_mining.py --domain $DOMAIN --output bug-bo
 **🔴 Ядро фазы — authz-diff harness, НЕ nuclei/sqlmap первым делом:**
 
 1. `opsec_preflight.preflight("web2", target=$DOMAIN, config=...)` — fail-closed gate ПЕРЕД любым live-
-   тестом (см. [`bug-bounty-toolkit/scripts/dapphunt/wallet_test/opsec_preflight.py`](../../bug-bounty-toolkit/scripts/dapphunt/wallet_test/opsec_preflight.py),
+   тестом (см. [`scripts/dapphunt/wallet_test/opsec_preflight.py`](../../scripts/dapphunt/wallet_test/opsec_preflight.py),
    `_web2_checks`) — блокирует, а не предупреждает, если VPN/incognito/in-scope/rate-limit не выполнены.
 2. **Browser session-capture для N-аккаунт matrix** — реальный логин через Playwright под каждой ролью
    из Phase P-AM (`admin`/`user-A`/`user-B`/`unauth`, + `tenant-A`/`tenant-B` если есть tenant-isolation
@@ -296,14 +296,14 @@ python3 bug-bounty-toolkit/scripts/js_mining.py --domain $DOMAIN --output bug-bo
    пропустит, не упадёт с ошибкой).
    🔴 **EXPOSURE-CAPTURE (runtime, P0-2):** те же захваченные артефакты (тела ответов из `_body`, DOM,
    JS-чанки, localStorage/sessionStorage, window-глобалы) прогони через
-   [`web2_exposure.capture_exposure(sources, path_kind="runtime")`](../../bug-bounty-toolkit/scripts/web2/web2_exposure.py)
+   [`web2_exposure.capture_exposure(sources, path_kind="runtime")`](../../scripts/web2/web2_exposure.py)
    — ловит секреты/крипто-ключи/PII/финданные (+ decode-слой), что живут ТОЛЬКО в рантайме и не видны
    статике. no-exfil (значения редактируются), OPSEC уже пройден шагом 1. Дополняет pre-T1 static EXPOSURE-SCAN.
 3. `build_role_contexts(role_responses)` → `run_authz_matrix(endpoints, role_contexts, session_dir)`
-   (см. [`bug-bounty-toolkit/scripts/web2/authz_diff.py`](../../bug-bounty-toolkit/scripts/web2/authz_diff.py)) — 🔴
-   `session_dir = dirname(ledger) = bug-bounty-toolkit/sessions/$DOMAIN/` (toolkit-rooted, НЕ bare
-   `bug-bounty-toolkit/sessions/$DOMAIN`, иначе гейт-детектор Task 9, ищущий файл в `dirname(ledger)`, промахнётся) —
-   пишет `bug-bounty-toolkit/sessions/$DOMAIN/authz_matrix.md` (summary-таблица + `## Divergences` с
+   (см. [`scripts/web2/authz_diff.py`](../../scripts/web2/authz_diff.py)) — 🔴
+   `session_dir = dirname(ledger) = sessions/$DOMAIN/` (toolkit-rooted, НЕ bare
+   `sessions/$DOMAIN`, иначе гейт-детектор Task 9, ищущий файл в `dirname(ledger)`, промахнётся) —
+   пишет `sessions/$DOMAIN/authz_matrix.md` (summary-таблица + `## Divergences` с
    `D-NN`). ОБЯЗАТЕЛЬНЫЙ прогон для каждого эндпоинта из `hypotheses.md`/`endpoint_scoremap.md` — гейт
    `active_authz_matrix_skipped` блокирует выход из ханта, если он не сделан.
    🔴 **WS/GraphQL-subscription эндпоинты (Task 10, §63):** `authz_diff` соединений сам НЕ открывает —
@@ -312,7 +312,7 @@ python3 bug-bounty-toolkit/scripts/js_mining.py --domain $DOMAIN --output bug-bo
    `authz_diff("wss://…/graphql-ws", role_contexts)` гонит authz-differential по WS ТОЧНО так же, как по
    HTTP (адаптер нормализует ws-ответ в тот же `Response`, `_body`-конвенция цела). Один эндпоинт-фрейм,
    разные auth-заголовки на роль → BOLA/BFLA по подписке. Ws-эндпоинты — `discover_ws` (Фаза 2/recon).
-4. [`bug-bounty-toolkit/scripts/web2/error_oracle.py`](../../bug-bounty-toolkit/scripts/web2/error_oracle.py) —
+4. [`scripts/web2/error_oracle.py`](../../scripts/web2/error_oracle.py) —
    `blind_diff` (SQLi/SSTI blind-detection), `cors_capture`/`headers_capture` (CORS/security-headers),
    `schema_hint_leak` (error-body утечка схемы) — прогони на input-sink кандидатах из Ф2.5 Step 5.
 
@@ -357,12 +357,12 @@ docker run --rm -v "$(pwd)/bug-bounty-toolkit:/bbt" bbt bash /bbt/scripts/scan.s
 
 ### Фаза 9 — Report
 
-**Pre-flight 1: T4 Two-Agent Verifier Pass** (ОБЯЗАТЕЛЬНО для каждой Med+ находки перед report draft). Следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass). Spawn research subagent с COLD context — hand ему ТОЛЬКО `file:line` + PoC script, НЕ давай свой hypothesis text и severity claim. Verifier prompt: "что этот код делает? что PoC реально доказывает? есть ли silent precondition? что severity?". Если verifier kill'ит → drop finding. Если downgrade на 2+ tier → принять verifier'а severity. Discrepancies log в `bug-bounty-toolkit/sessions/_methodology/verifier_calibration.jsonl`.
+**Pre-flight 1: T4 Two-Agent Verifier Pass** (ОБЯЗАТЕЛЬНО для каждой Med+ находки перед report draft). Следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass). Spawn research subagent с COLD context — hand ему ТОЛЬКО `file:line` + PoC script, НЕ давай свой hypothesis text и severity claim. Verifier prompt: "что этот код делает? что PoC реально доказывает? есть ли silent precondition? что severity?". Если verifier kill'ит → drop finding. Если downgrade на 2+ tier → принять verifier'а severity. Discrepancies log в `sessions/_methodology/verifier_calibration.jsonl`.
 
-**Pre-flight 2: T3 Exploit Chaining Check** — для каждой находки прошедшей verifier apply [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) "Point B" checklist. Если находка чейнится с другой находкой / past audit gap / protocol-level assumption → перепиши как chain (severity +1-2 tier).
+**Pre-flight 2: T3 Exploit Chaining Check** — для каждой находки прошедшей verifier apply [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) "Point B" checklist. Если находка чейнится с другой находкой / past audit gap / protocol-level assumption → перепиши как chain (severity +1-2 tier).
 
 **Pre-flight 3: web_severity расчёт (web2-профиль)** — для каждой находки посчитай severity через
-[`bug-bounty-toolkit/scripts/_methodology/web_severity.py`](../../bug-bounty-toolkit/scripts/_methodology/web_severity.py)
+[`scripts/_methodology/web_severity.py`](../../scripts/_methodology/web_severity.py)
 `severity(factors, platform, profile="web2")` с факторами `auth_barrier` (unauth/user/admin) /
 `blast_radius` (one-user/all-users/cross-tenant/full-db) / `data_sensitivity` (public/pii/credentials/
 financial). Verdict-tier идёт в report как базовая severity ДО ручной калибровки под program-specific
@@ -373,7 +373,7 @@ rubric (правило §5 `CLAUDE.md` — читать scope/severity rubric Д
 - `templates/disclosure_ecommerce.md` — ecommerce/payment data
 - `templates/disclosure_web3.md` — смарт-контракты
 
-Заполни шаблон по находкам, сохрани в `bug-bounty-toolkit/sessions/$DOMAIN/report.md`. Английский язык.
+Заполни шаблон по находкам, сохрани в `sessions/$DOMAIN/report.md`. Английский язык.
 
 ### Фаза 10 — Прайоритизация
 Каждой находке проставь:
@@ -398,12 +398,12 @@ scan 1-3ч на цель.
 # Wide proactive recon (все источники одним JSON: hackerone/bugcrowd/yeswehack/intigriti/hackenproof/
 # standoff365/bizone + shodan_open_dbs; ключи immunefi/sherlock/defillama_new/solana_deploys/
 # sec3_audit_comps в выводе ИГНОРИРУЙ здесь — это web3 Deep-tier сигналы, вне scope /hunt)
-python3 bug-bounty-toolkit/scripts/proactive.py --output bug-bounty-toolkit/sessions/_proactive --source all
+python3 scripts/proactive.py --output sessions/_proactive --source all
 ```
 
 Дополнительно если есть watchlist:
 ```bash
-python3 bug-bounty-toolkit/scripts/monitor_deploys.py --watchlist watchlist.txt --output bug-bounty-toolkit/sessions/_proactive
+python3 scripts/monitor_deploys.py --watchlist watchlist.txt --output sessions/_proactive
 ```
 
 ### Шаг 2 — Отфильтруй web2-источники из `proactive.json`
@@ -443,7 +443,7 @@ python3 bug-bounty-toolkit/scripts/monitor_deploys.py --watchlist watchlist.txt 
 
 ### Если the operator говорит "найди утечки на GitHub по компании X"
 ```bash
-python3 bug-bounty-toolkit/scripts/github_recon.py --org X --output bug-bounty-toolkit/sessions/X --deep-scan
+python3 scripts/github_recon.py --org X --output sessions/X --deep-scan
 ```
 
 ### Если результаты подтверждают серьёзную находку
@@ -488,7 +488,7 @@ Deep-tier discovery ушёл за пределы `/hunt`), команда всё
 При запросе "что нового" / "проверь алерты" / "daily digest":
 
 ```bash
-python3 bug-bounty-toolkit/scripts/monitors/daily_digest.py --output bug-bounty-toolkit/sessions/_monitors
+python3 scripts/monitors/daily_digest.py --output sessions/_monitors
 ```
 
 Это запустит:
@@ -511,12 +511,12 @@ python3 bug-bounty-toolkit/scripts/monitors/daily_digest.py --output bug-bounty-
 ## In-moment references (когда застрял на эксплуатации)
 
 При сложных ситуациях:
-- Не уверен какие XSS payload пробовать → читай `bug-bounty-toolkit/scripts/_references.md` секция XSS
+- Не уверен какие XSS payload пробовать → читай `scripts/_references.md` секция XSS
 - Нашёл SSRF, не знаешь как escalate → секция SSRF + cloud metadata
 - Web3 паттерн непонятен → секция Web3 + threat_intel.md
 
 **Workflow:**
-1. Открываю `bug-bounty-toolkit/scripts/_references.md`
+1. Открываю `scripts/_references.md`
 2. Нахожу нужную категорию
 3. Беру топ-1 URL (HackTricks обычно)
 4. Диспатчу research subagent с этим URL
@@ -531,7 +531,7 @@ python3 bug-bounty-toolkit/scripts/monitors/daily_digest.py --output bug-bounty-
 После каждого scan/action — лог в `~/.bbt/audit.log`:
 
 ```bash
-python3 bug-bounty-toolkit/scripts/_audit_log.py \
+python3 scripts/_audit_log.py \
   --target $TARGET \
   --mode active \
   --tools "nuclei,sqlmap" \
@@ -552,7 +552,7 @@ Authorization values:
 
 Перед серьёзной охотой раз в неделю:
 ```bash
-bash bug-bounty-toolkit/scripts/_update.sh
+bash scripts/_update.sh
 ```
 
 Обновит nuclei templates, Immunefi list, bounty-targets-data, PayloadsAllTheThings, Decurity rules, SWC, VRT, threat intel.
@@ -563,57 +563,57 @@ bash bug-bounty-toolkit/scripts/_update.sh
 
 | Инструмент | Когда использовать |
 |------------|-------------------|
-| `bug-bounty-toolkit/scripts/burp_export.py` | После /hunt — экспорт в Burp для manual deep dive |
-| `bug-bounty-toolkit/scripts/osint_enrich.py` | Перед disclosure — найти security@ контакт |
-| `bug-bounty-toolkit/scripts/_meta_analysis.py` | Еженедельно — feedback loop по эффективности тулов |
+| `scripts/burp_export.py` | После /hunt — экспорт в Burp для manual deep dive |
+| `scripts/osint_enrich.py` | Перед disclosure — найти security@ контакт |
+| `scripts/_meta_analysis.py` | Еженедельно — feedback loop по эффективности тулов |
 
 ## Phase I.5 инструменты (push к 9.5/10)
 
 | Инструмент | Когда использовать |
 |------------|-------------------|
-| `bug-bounty-toolkit/scripts/cicd_leak_scanner.py` | Перед охотой на org с GitHub — самый недооценённый ROI |
-| `bug-bounty-toolkit/scripts/_methodology/secret_exposure_scanner.py` | **pre-T1 EXPOSURE-SCAN** (producer): secret/key/PII/**financial-data** по коду+bundle+source-map+git (decode-слой). Для web2 ценны PII/финансовые/закрытые данные, не только ключи. Живой рантайм (web2 authz-сессия) → `web2_exposure.capture_exposure` (OPSEC fail-closed, шаг 2 браузер-флоу). Пишет `EXPOSURE-SCAN:` ledger-строку (снимает gate) |
-| `bug-bounty-toolkit/scripts/jwt_advanced.py` | Нашёл JWT auth — KID injection, alg confusion, JWK |
-| `bug-bounty-toolkit/scripts/cache_deception.py` | Web2 цель имеет user-specific endpoints + CDN |
-| `bug-bounty-toolkit/scripts/http_smuggling.py` | Все web2 цели за CDN/proxy — современный класс |
+| `scripts/cicd_leak_scanner.py` | Перед охотой на org с GitHub — самый недооценённый ROI |
+| `scripts/_methodology/secret_exposure_scanner.py` | **pre-T1 EXPOSURE-SCAN** (producer): secret/key/PII/**financial-data** по коду+bundle+source-map+git (decode-слой). Для web2 ценны PII/финансовые/закрытые данные, не только ключи. Живой рантайм (web2 authz-сессия) → `web2_exposure.capture_exposure` (OPSEC fail-closed, шаг 2 браузер-флоу). Пишет `EXPOSURE-SCAN:` ledger-строку (снимает gate) |
+| `scripts/jwt_advanced.py` | Нашёл JWT auth — KID injection, alg confusion, JWK |
+| `scripts/cache_deception.py` | Web2 цель имеет user-specific endpoints + CDN |
+| `scripts/http_smuggling.py` | Все web2 цели за CDN/proxy — современный класс |
 
 ## Phase I.6 инструменты (push к 9.8-9.9/10)
 
 | Инструмент | Когда использовать |
 |------------|-------------------|
-| `bug-bounty-toolkit/scripts/_knowledge_base.py` | После каждого verified finding — toolkit учится |
-| `bug-bounty-toolkit/scripts/_crm.py` | После каждого submitted report — без CRM теряем репорты |
-| `bug-bounty-toolkit/scripts/variant_analysis.py` | Нашёл bug — проверить все другие sessions на variants |
-| `bug-bounty-toolkit/scripts/cve_patch_diff.py` | Daily cron — match свежих CVE с нашими targets |
-| `bug-bounty-toolkit/scripts/graphql_advanced.py` | Web2 цель использует GraphQL |
-| `bug-bounty-toolkit/scripts/websocket_test.py` | Web2 цель использует WebSockets |
+| `scripts/_knowledge_base.py` | После каждого verified finding — toolkit учится |
+| `scripts/_crm.py` | После каждого submitted report — без CRM теряем репорты |
+| `scripts/variant_analysis.py` | Нашёл bug — проверить все другие sessions на variants |
+| `scripts/cve_patch_diff.py` | Daily cron — match свежих CVE с нашими targets |
+| `scripts/graphql_advanced.py` | Web2 цель использует GraphQL |
+| `scripts/websocket_test.py` | Web2 цель использует WebSockets |
 
 ## Phase I.7 инструменты (web2 divergence-first ядро — FDE План 5)
 
 | Инструмент | Когда использовать |
 |------------|-------------------|
-| `bug-bounty-toolkit/scripts/web2/authz_diff.py` | Ядро Ф5-6 — N-ролей differential matrix, `run_authz_matrix()` → `authz_matrix.md` |
-| `bug-bounty-toolkit/scripts/web2/error_oracle.py` | SQLi/SSTI blind-diff (`blind_diff`) + CORS/security-headers (`cors_capture`/`headers_capture`) + error-body schema leak (`schema_hint_leak`) |
-| `bug-bounty-toolkit/scripts/web2/openapi_to_acnn.py` | Есть OpenAPI/Swagger/GraphQL-схема или JS sourcemap — скелет `AC-NN` + `endpoint_scoremap.md` (Phase P-AM) |
-| `bug-bounty-toolkit/scripts/web2/business_logic.py` | Race-condition/mass-assignment/workflow-skip кандидаты → `BL-NN` (Ф2.5 Step 4) |
-| `bug-bounty-toolkit/scripts/web2/payloads/*.md` (bola/bfla/bopla/cors/jwt/mass_assignment/oauth2/rate_limit/blind_ssrf/ssrf_bypass **+ file_upload/host_header/csrf/xxe/deserialization/prototype_pollution/saml**) | Payload + Detection Signal + Anti-FP по конкретному классу — открывать когда гипотеза сузилась до класса |
-| `bug-bounty-toolkit/scripts/web2/frameworks/*.md` (nextjs/springboot/laravel/django/fastapi/nodejs/aspnet/nestjs) | **Fingerprint→CVE рефлекс**: опознал стек (Фаза 3 fingerprint) → открой файл стека → прогони known-CVE чеки (Next.js CVE-2025-29927 middleware-bypass, Spring4Shell, Laravel Ignition…) |
-| `bug-bounty-toolkit/sessions/_methodology/ato_chains.md` | Консолидированный web2-ATO каталог (9 путей + 8 MFA-bypass + chain-примеры) — открывать при auth/session/reset-гипотезе; cross-ref host_header/csrf/jwt/oauth2 payloads |
-| `bug-bounty-toolkit/scripts/web2/secret_validate.py` | Нашёл ключ (secret_exposure/web2_exposure) → **read-only** проверка «жив ли + scope» (`validate(key, kind=…, allow_live+opsec_ok)`). Fail-closed. Severity-gate: dead=Low, live+broad=Critical |
-| `bug-bounty-toolkit/scripts/web2/http_wave_delta.py` | Ре-визит живого таргета: снимок HTTP-статусов/CORS/headers между волнами → **REVERSED** (защита откачена=P0)/NEW/REGRESSION. Behavioral-аналог wave_delta.py (тот — код) |
-| `bug-bounty-toolkit/scripts/web2/tls_fingerprint.py` | CF/Akamai/DataDome блокирует curl/WebFetch (CLAUDE.md §7) → JA3/JA4-impersonation через curl_cffi (HTTP-скорость без Playwright). **Dual-use, fail-closed, только in-scope**; нет curl_cffi → fallback Playwright |
-| `bug-bounty-toolkit/scripts/submission/evidence_redact.py` | **ПЕРЕД сабмитом** PoC: `redact_har(har)`/`redact_text(log)` — hard-strip Cookie/Authorization + secret/PII. Защищает burner-сессию + не сливает victim-PII |
-| `bug-bounty-toolkit/scripts/web2/ai_injection_diff.py` `confabulation_gate()` | AI-surface находка (Cat 28) → T4 anti-confabulation (run-twice verbatim/anchor/OOB/refusal≠secure) ПЕРЕД сабмитом (submission_checklist quality_required) |
-| `bug-bounty-toolkit/scripts/_methodology/web_severity.py` | Финальная severity, `severity(factors, platform, profile="web2")` (Фаза 9, Pre-flight 3) |
-| `bug-bounty-toolkit/scripts/_methodology/error_recovery.py` | `classify_http` — WAF/rate-limit/network классификация ответов; `authz_diff`/`error_oracle` зависят от него |
-| `bug-bounty-toolkit/scripts/_methodology/differential_observation.py` | Общий примитив diff (`Context`/`Probe`/`Response`/`differential`) — `authz_diff.py` построен НА нём |
-| `bug-bounty-toolkit/scripts/dapphunt/wallet_test/opsec_preflight.py` | Fail-closed gate ПЕРЕД любым live-тестом — `preflight("web2", target, config)` |
-| `bug-bounty-toolkit/scripts/dapphunt/wallet_test/humanize.py` | Bézier-мышь/typo/overshoot-скролл для login-automation в session-capture (Ф5) при reCAPTCHA |
+| `scripts/web2/authz_diff.py` | Ядро Ф5-6 — N-ролей differential matrix, `run_authz_matrix()` → `authz_matrix.md` |
+| `scripts/web2/error_oracle.py` | SQLi/SSTI blind-diff (`blind_diff`) + CORS/security-headers (`cors_capture`/`headers_capture`) + error-body schema leak (`schema_hint_leak`) |
+| `scripts/web2/openapi_to_acnn.py` | Есть OpenAPI/Swagger/GraphQL-схема или JS sourcemap — скелет `AC-NN` + `endpoint_scoremap.md` (Phase P-AM) |
+| `scripts/web2/business_logic.py` | Race-condition/mass-assignment/workflow-skip кандидаты → `BL-NN` (Ф2.5 Step 4) |
+| `scripts/web2/payloads/*.md` (bola/bfla/bopla/cors/jwt/mass_assignment/oauth2/rate_limit/blind_ssrf/ssrf_bypass **+ file_upload/host_header/csrf/xxe/deserialization/prototype_pollution/saml**) | Payload + Detection Signal + Anti-FP по конкретному классу — открывать когда гипотеза сузилась до класса |
+| `scripts/web2/frameworks/*.md` (nextjs/springboot/laravel/django/fastapi/nodejs/aspnet/nestjs) | **Fingerprint→CVE рефлекс**: опознал стек (Фаза 3 fingerprint) → открой файл стека → прогони known-CVE чеки (Next.js CVE-2025-29927 middleware-bypass, Spring4Shell, Laravel Ignition…) |
+| `sessions/_methodology/ato_chains.md` | Консолидированный web2-ATO каталог (9 путей + 8 MFA-bypass + chain-примеры) — открывать при auth/session/reset-гипотезе; cross-ref host_header/csrf/jwt/oauth2 payloads |
+| `scripts/web2/secret_validate.py` | Нашёл ключ (secret_exposure/web2_exposure) → **read-only** проверка «жив ли + scope» (`validate(key, kind=…, allow_live+opsec_ok)`). Fail-closed. Severity-gate: dead=Low, live+broad=Critical |
+| `scripts/web2/http_wave_delta.py` | Ре-визит живого таргета: снимок HTTP-статусов/CORS/headers между волнами → **REVERSED** (защита откачена=P0)/NEW/REGRESSION. Behavioral-аналог wave_delta.py (тот — код) |
+| `scripts/web2/tls_fingerprint.py` | CF/Akamai/DataDome блокирует curl/WebFetch (CLAUDE.md §7) → JA3/JA4-impersonation через curl_cffi (HTTP-скорость без Playwright). **Dual-use, fail-closed, только in-scope**; нет curl_cffi → fallback Playwright |
+| `scripts/submission/evidence_redact.py` | **ПЕРЕД сабмитом** PoC: `redact_har(har)`/`redact_text(log)` — hard-strip Cookie/Authorization + secret/PII. Защищает burner-сессию + не сливает victim-PII |
+| `scripts/web2/ai_injection_diff.py` `confabulation_gate()` | AI-surface находка (Cat 28) → T4 anti-confabulation (run-twice verbatim/anchor/OOB/refusal≠secure) ПЕРЕД сабмитом (submission_checklist quality_required) |
+| `scripts/_methodology/web_severity.py` | Финальная severity, `severity(factors, platform, profile="web2")` (Фаза 9, Pre-flight 3) |
+| `scripts/_methodology/error_recovery.py` | `classify_http` — WAF/rate-limit/network классификация ответов; `authz_diff`/`error_oracle` зависят от него |
+| `scripts/_methodology/differential_observation.py` | Общий примитив diff (`Context`/`Probe`/`Response`/`differential`) — `authz_diff.py` построен НА нём |
+| `scripts/dapphunt/wallet_test/opsec_preflight.py` | Fail-closed gate ПЕРЕД любым live-тестом — `preflight("web2", target, config)` |
+| `scripts/dapphunt/wallet_test/humanize.py` | Bézier-мышь/typo/overshoot-скролл для login-automation в session-capture (Ф5) при reCAPTCHA |
 | `methodology/invariant_library.md` `## § Web2` | 7 web2-примитивов (authz/session/CORS/JWT/...) — открывать при опознании примитива |
 
-**Артефакты** (toolkit-rooted, `dirname(ledger)`): `bug-bounty-toolkit/sessions/$DOMAIN/authz_matrix.md`
-(authz_diff, Ф5-6) · `bug-bounty-toolkit/sessions/$DOMAIN/endpoint_scoremap.md` (openapi_to_acnn, Phase
-P-AM) · `bug-bounty-toolkit/sessions/$DOMAIN/system_model.md` (Phase P-AM, несёт и `## Business Logic`).
+**Артефакты** (toolkit-rooted, `dirname(ledger)`): `sessions/$DOMAIN/authz_matrix.md`
+(authz_diff, Ф5-6) · `sessions/$DOMAIN/endpoint_scoremap.md` (openapi_to_acnn, Phase
+P-AM) · `sessions/$DOMAIN/system_model.md` (Phase P-AM, несёт и `## Business Logic`).
 **Endpoint-discovery арсенал** (если установлены в окружении, не toolkit-owned): `kiterunner` / `katana` /
 `Arjun` — доп. content-discovery перед `openapi_to_acnn.py`, если готовой схемы нет.
 
@@ -621,30 +621,30 @@ P-AM) · `bug-bounty-toolkit/sessions/$DOMAIN/system_model.md` (Phase P-AM, не
 
 После каждого подтверждённого finding:
 ```bash
-python3 bug-bounty-toolkit/scripts/_knowledge_base.py record \
-  --finding-id F003 --session bug-bounty-toolkit/sessions/example.com
+python3 scripts/_knowledge_base.py record \
+  --finding-id F003 --session sessions/example.com
 ```
 
 После submit отчёта:
 ```bash
-python3 bug-bounty-toolkit/scripts/_crm.py add \
+python3 scripts/_crm.py add \
   --target example.com --finding F003 --platform hackerone --bounty 5000
 ```
 
 После accept/paid:
 ```bash
-python3 bug-bounty-toolkit/scripts/_crm.py update --id R001 --status paid --amount 5000
-python3 bug-bounty-toolkit/scripts/_knowledge_base.py record-paid \
+python3 scripts/_crm.py update --id R001 --status paid --amount 5000
+python3 scripts/_knowledge_base.py record-paid \
   --kb-id kb_xxxx --amount 5000 --platform hackerone
 ```
 
 Раз в неделю:
 ```bash
-python3 bug-bounty-toolkit/scripts/_knowledge_base.py weights      # обновляет confidence weights
-python3 bug-bounty-toolkit/scripts/_knowledge_base.py suggest      # custom detector suggestions
-python3 bug-bounty-toolkit/scripts/_meta_analysis.py               # tool effectiveness report
-python3 bug-bounty-toolkit/scripts/cve_patch_diff.py --output bug-bounty-toolkit/sessions/_cve_alerts/
-python3 bug-bounty-toolkit/scripts/_crm.py overdue                 # репорты без ответа
+python3 scripts/_knowledge_base.py weights      # обновляет confidence weights
+python3 scripts/_knowledge_base.py suggest      # custom detector suggestions
+python3 scripts/_meta_analysis.py               # tool effectiveness report
+python3 scripts/cve_patch_diff.py --output sessions/_cve_alerts/
+python3 scripts/_crm.py overdue                 # репорты без ответа
 ```
 
 **Через 3-6 месяцев активной работы** toolkit реально personalized под твой стиль и нишу.
@@ -654,7 +654,7 @@ python3 bug-bounty-toolkit/scripts/_crm.py overdue                 # репор�
 ## Структура сессии
 
 ```
-bug-bounty-toolkit/sessions/$DOMAIN/
+sessions/$DOMAIN/
 ├── status.md                # in-progress / reported / bounty-received / no-response
 ├── recon_summary.json       # из recon.sh
 ├── scan_summary.json        # из scan.sh

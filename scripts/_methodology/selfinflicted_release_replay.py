@@ -60,7 +60,7 @@ def mk_ledger():
 def edit_line():
     return json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
         {"type": "tool_use", "name": "Edit",
-         "input": {"file_path": "bug-bounty-toolkit/sessions/%s/hypotheses.md" % SLUG}}]}})
+         "input": {"file_path": "sessions/%s/hypotheses.md" % SLUG}}]}})
 
 
 def user_line(text, is_meta):

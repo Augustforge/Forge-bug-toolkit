@@ -143,7 +143,7 @@ _BG_TOOLS = ("Agent", "Task", "Workflow")
 _NOTIF_ID_RE = re.compile(r"<tool-use-id>\s*([A-Za-z0-9_\-]+)\s*</tool-use-id>")
 
 # ─── WORKLIST DRIVER (2026-08-11) — feature-flag ────────────────────────────────
-# Plan: bug-bounty-toolkit/methodology/plans/worklist_driver_plan.md
+# Plan: methodology/plans/worklist_driver_plan.md
 # Diagnosis: the hunt plan lives as passive TEXT in the ledger -> the LLM drifts every iteration (give-up /
 # going the wrong way when switching axis / a forgotten undup). Fix: a machine registry of atoms
 # (section `## Atom Registry`) dictates the NEXT atom = the OPEN row with max rank, rather than "the
@@ -3164,7 +3164,7 @@ T11_UNDECIDED_REASON = (
     "(invariant-heavy stateful + build), while the instances went past it because nothing blocked the skip. "
     "T11 = a fuzzer as a GENERATOR of divergences (looks for a SEQUENCE that breaks an order-dependent `I-NN`, "
     "which reading cannot catch) - a machine source of `D-NN`, complementary to manual T10. NOW: run "
-    "`py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/t11_applicable.py <target> --model "
+    "`py -3 -X utf8 scripts/_methodology/t11_applicable.py <target> --model "
     "sessions/<slug>/system_model.md` and WRITE into the ledger a line `T11-VERDICT: <APPLICABLE|MAYBE|SKIP|N/A>` "
     "(+reason). `APPLICABLE` -> build a harness from order-dependent `I-NN` (fizz/Echidna for EVM · Trident for "
     "Solana, `scripts/web3/hypothesis/harness_from_invariant.md`), run BEFORE the hypothesis. `SKIP — <no "
@@ -3179,7 +3179,7 @@ ATTENTION_GAP_REASON = (
     "(an inversion of the audit map, `audit_coverage_invert.py`) + where the author did NOT look (traces of haste in git, "
     "`commit_archaeology.py`). An intersection with `D-NN` = maximum priority. Concluding 'nothing there' without "
     "running T14 = searching in the same place as the crowd. NOW: either run `py -3 -X utf8 "
-    "bug-bounty-toolkit/scripts/_methodology/audit_coverage_invert.py` + `commit_archaeology.py` (the FULL "
+    "scripts/_methodology/audit_coverage_invert.py` + `commit_archaeology.py` (the FULL "
     "history is needed, not `--depth 1`) and enter the findings in `## Attention Gaps` (place · source · "
     "intersection with `D-NN`); or `Attention Gaps: N/A — <no audits / shallow git / nothing to invert>` "
     "as an explicit line. An open live `D-NN` lifts the gate (drive it - T14 will wait)."
@@ -3205,7 +3205,7 @@ COMPOSITION_REASON = (
     "is absent/empty. The composition graph catches seams that NO single-I-NN status expresses: "
     "the output of one boundary = the input of another, and 'who validates at the seam?' is a question the crowd also does not "
     "ask systematically (un-dup by construction). NOW: run `py -3 -X utf8 "
-    "bug-bounty-toolkit/scripts/web2/composition_map.py --model <system_model.md> --session-dir "
+    "scripts/web2/composition_map.py --model <system_model.md> --session-dir "
     "<dirname(ledger)>` - edges without a validator (Status != ENFORCED), not yet entered into `## Divergences`, "
     "will come out as `D-NN` candidates with `undup_origin: composition-seam`. Enter the real findings into the model."
 )
@@ -3853,7 +3853,7 @@ PATTERN_REPLAY_REASON = (
     "`sessions/_methodology/undup_pattern_library.md` (pattern + `fingerprint:` + where to look); entering a "
     "target you MUST grep them OVER the target code - a matched pattern = a seed hypothesis of the HIGHEST priority, because "
     "the crowd did not close it anywhere (un-dup by construction, stronger than ordinary transfer). NOW: run "
-    "`py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/pattern_replay.py --src <target-repo> "
+    "`py -3 -X utf8 scripts/_methodology/pattern_replay.py --src <target-repo> "
     "--session-dir <dirname(ledger)>` - it will write `PRIOR-PATTERNS: N matched` (lifts the hold), each "
     "matched -> create an H-NN. No access to the code / empty library -> it becomes `PRIOR-PATTERNS: 0 matched` "
     "(that also lifts it - the producer was run, there was simply nothing to match)."
@@ -3927,7 +3927,7 @@ EXPOSURE_SCAN_REASON = (
     "mature (`_i_matured_count>=3`), but the `EXPOSURE-SCAN:` line = `{TODO}`/empty: the cross-engine secret/"
     "key/PII/financial-data grep-pass has not been run. A hardcoded/leaked key (a real-world six-figure case), bulk PII, "
     "financial/closed data - the CHEAPEST Critical, living IN the code/bundle/source-map/git, not in the logic. "
-    "NOW: `py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/secret_exposure_scanner.py --target "
+    "NOW: `py -3 -X utf8 scripts/_methodology/secret_exposure_scanner.py --target "
     "<clone> --session-dir <dirname(ledger)> [--git-history]` - it will write `EXPOSURE-SCAN: N secrets / M pii / "
     "K data / 0` (lifts the hold), every secret/key -> H-NN (offline-derive + keypair->role correlation "
     "for severity). ⚠️ an ad-hoc `grep` over the bundle does NOT lift it: the line is written ONLY by the producer (it leaves the "
@@ -6404,7 +6404,7 @@ SCOUT_REASON = (
     "`WAVE-2: … PENDING` (CORE в волну 2 НЕ уезжает НИКОГДА). Каждый scout → лиды (file:line + prediction "
     "+ falsifier) → merge: anti-slop + dedup + cross-thread T6-пасс по парам из разных партиций → H-NN → "
     "заполни таблицу + `BOUNDARY-MAP` + OPTIONAL-triage + WAVE-2 → смени Status на `DONE`. Спека: "
-    "`bug-bounty-toolkit/sessions/_methodology/scout_fanout.md`. Одиночный мелкий контракт → Status "
+    "`sessions/_methodology/scout_fanout.md`. Одиночный мелкий контракт → Status "
     "`N/A — single-contract` (P-B → `N/A — no external trust boundary`) и в single-pick. Ранняя разведка, "
     "fan-out отложен (fingerprint бандла / web) → Status `DEFERRED → after <recon-step>`. ⚠ Гейт "
     "пропускает ТОЛЬКО канонические `DONE`/`N/A`/`DEFERRED`; `PENDING`, пусто И ЛЮБОЙ самодельный статус "
@@ -6449,14 +6449,14 @@ WAVE_PENDING_REASON = (
 CLONE_DIFF_REASON = (
     "P-CLONE PRODUCER GATE (Task 4, FDE profile-dapphunt-web3-frontend). Cross-Clone — обязательная фаза "
     "(§7) на web-хантах: партиция `P-CLONE` в Scout Fan-Out активна (не N/A/DEFERRED), волна DONE, но "
-    "`bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md` не прогнан. СЕЙЧАС: прогони "
-    "`asymmetry_scanner_dapp.py --md-out bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md` ЛИБО пометь строку P-CLONE "
+    "`sessions/$DOMAIN/clone_diff.md` не прогнан. СЕЙЧАС: прогони "
+    "`asymmetry_scanner_dapp.py --md-out sessions/$DOMAIN/clone_diff.md` ЛИБО пометь строку P-CLONE "
     "`N/A — single deploy`, если у таргета один деплой без клонов/staging."
 )
 
 AUTHZ_MATRIX_REASON = (
     "P-AUTHZ PRODUCER GATE (Task 9, FDE profile-web2-hunt). web2 P-AUTHZ активна, но "
-    "`bug-bounty-toolkit/sessions/$DOMAIN/authz_matrix.md` не прогнан — authz-diff harness = ядро "
+    "`sessions/$DOMAIN/authz_matrix.md` не прогнан — authz-diff harness = ядро "
     "web2 (§17); прогони `authz_diff.py` (`run_authz_matrix`) под `opsec_preflight('web2')` ЛИБО "
     "пометь P-AUTHZ `N/A` / файл `MODE: single+unauth`. NB: `0 divergences` ≠ проверено на full-leak "
     "BOLA (см. blind_spots.md BS-05)."
@@ -6475,7 +6475,7 @@ OP_COVERAGE_REASON = (
 AI_TRUST_REASON = (
     "P-AI PRODUCER GATE (Task 3, FDE План 7 §60, profile-web-ai-surface). AI/LLM-фича детектнута "
     "(партиция `P-AI` в Scout Fan-Out активна, не N/A, волна DONE), но "
-    "`bug-bounty-toolkit/sessions/$DOMAIN/ai_trust_matrix.md` не прогнан — AI-surface несёт свой "
+    "`sessions/$DOMAIN/ai_trust_matrix.md` не прогнан — AI-surface несёт свой "
     "trust-boundary (context≠instruction, tool-call re-authz ПОСЛЕ LLM: injection→priv tool-call / "
     "RAG bleed / prompt-extract / SSRF-via-agent / output→sink, Cat 28). СЕЙЧАС: прогони "
     "`ai_injection_diff.py` (`run_ai_trust_matrix`) под `opsec_preflight('web2')` ЛИБО пометь строку "
@@ -6525,7 +6525,7 @@ LOOP_STATE_REASON = (
     "переписан своим форматом мимо канонического template. Без Loop State (Iteration #, "
     "Current pick, Last SELECT-branch, per-iteration trace) петля НЕ resumable: при компакте/"
     "рестарте нельзя продолжить с точной ветки. ДОБАВЬ блок `## Loop State` из "
-    "`bug-bounty-toolkit/sessions/_methodology/hypotheses_template.md` в ledger и веди его в "
+    "`sessions/_methodology/hypotheses_template.md` в ledger и веди его в "
     "конце КАЖДОЙ итерации. Свой формат (KNOWN ISSUES / Drift signals) можешь оставить — но "
     "Loop State + Refuted-с-falsifier + Building Blocks ОБЯЗАТЕЛЬНЫ поверх него."
 )
@@ -6663,7 +6663,7 @@ EXIT_KNOWLEDGE_REASON = (
     "EXIT-KNOWLEDGE (the operator 2026-08-13 — «после ухода данные должны вноситься на будущее»). Ledger `%s`: "
     "выходишь (success ИЛИ «уходим»), но знание на БУДУЩЕЕ не забанковано. Компаундинг — суть длинной "
     "охоты: без банка теряем накопленное на каждом выходе. ПЕРЕД выходом внеси (что применимо): "
-    "(1) **wave-snapshot** — `py -3 -X utf8 bug-bounty-toolkit/scripts/wave_delta.py snapshot <slug> "
+    "(1) **wave-snapshot** — `py -3 -X utf8 scripts/wave_delta.py snapshot <slug> "
     "--src <path>` (ре-визит-хук на следующем релизе пойдёт по ДЕЛЬТЕ, не с нуля); (2) **undup_pattern** — "
     "fingerprint находки/паттерна в `sessions/_methodology/undup_pattern_library.md` (PRIOR-PATTERNS "
     "следующего таргета = moat); (3) **memory-INDEX** — строка ханта в `memory/INDEX_projects.md` (таргет, "

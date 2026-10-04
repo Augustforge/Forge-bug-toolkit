@@ -108,7 +108,7 @@ argument-hint: "[domain] | без аргумента = proactive mode"
 
 ## Методология (shared across /hunt, /deephunt, /dapphunt)
 
-Перед началом dapp hunt — прочитай [`bug-bounty-toolkit/methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md). Core discipline:
+Перед началом dapp hunt — прочитай [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md). Core discipline:
 
 - **Hunt-Loop spine (run-mode, ALWAYS-ON)** — хант идёт как самокрутящаяся петля: вход поднимает
   `.hunt_active` → 1 гипотеза/итерация (single-pick) → T2+depth-ceiling → refute требует falsifier'а
@@ -132,10 +132,10 @@ argument-hint: "[domain] | без аргумента = proactive mode"
 - **T3 — Exploit Chaining Discipline** — обязательная Point B sanity check на Phase 11 перед report auto-draft
 - **T4 — Two-Agent Verifier Pass (MANDATORY GATE)** — на Phase 11 ПЕРЕД report auto-draft, для каждой Med+ находки cold-context subagent re-derives. Особенно критично для clickjacking / phishing-chain находок где severity спорная. Kill / 2-tier-downgrade / silent-precondition = НЕ сабмитить.
 - **T5 — Patch-Diff Hypothesis Seeding** — на Phase 2.5b: если OSS contract repo cloned + есть audit history → `git diff audit_commit..HEAD` → каждый hunk seed hypothesis. Для dApp frontend pure (minified bundles) — skip.
-- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies на Phase 2.5 alongside single-vector hypotheses AND на каждом D-Kill. dApp-specific chains: wildcard + dangling CNAME + auth provider trust expansion = chain Critical. Sweep via [`bug-bounty-toolkit/methodology/hypothesis_taxonomy.md`](../../bug-bounty-toolkit/methodology/hypothesis_taxonomy.md) — Category 16 (dApp frontend) + Category 17 (meta-classes) применяются полностью.
+- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies на Phase 2.5 alongside single-vector hypotheses AND на каждом D-Kill. dApp-specific chains: wildcard + dangling CNAME + auth provider trust expansion = chain Critical. Sweep via [`methodology/hypothesis_taxonomy.md`](../../methodology/hypothesis_taxonomy.md) — Category 16 (dApp frontend) + Category 17 (meta-classes) применяются полностью.
 - **T7 — Canonical `hypotheses.md` registry** — create на Phase 2.5, update live, MANDATORY artifact. Template + protocol в `mythos_techniques.md` Technique 7.
 - **Browser-first (обязательно):** оба скилла работают через живой браузер под OPSEC-gate — см.
-  `bug-bounty-toolkit/sessions/_methodology/browser_first_mandate.md`.
+  `sessions/_methodology/browser_first_mandate.md`.
 
 ---
 
@@ -146,7 +146,7 @@ argument-hint: "[domain] | без аргумента = proactive mode"
 ### Phase 0 — Auto-routing (chain/stack detect)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/dapp_detection.py --target $DOMAIN \
+python3 scripts/dapphunt/core/dapp_detection.py --target $DOMAIN \
     --output sessions/$DOMAIN/dapp_detection.json
 ```
 
@@ -159,11 +159,11 @@ Mindset: *"Это вообще dApp? Какие chain/wallet/auth signals?"*
 ### Phase 1 — Setup + pre-hunt program recon (~15 мин)
 
 ```bash
-mkdir -p bug-bounty-toolkit/sessions/$DOMAIN
+mkdir -p sessions/$DOMAIN
 ```
 
 **⛔ ПЕРВЫЙ ШАГ (до всего остального) — поднять completeness-gate.** Создай маркер активного ханта:
-`touch bug-bounty-toolkit/sessions/$DOMAIN/.hunt_active` (или Write пустого файла). **Включает Stop-хук**
+`touch sessions/$DOMAIN/.hunt_active` (или Write пустого файла). **Включает Stop-хук**
 `hunt_completeness_gate.py` — в **автономном режиме (по умолчанию)** он держит turn и форсит следующий
 single-pick, не давая самовольно завершить хант; ABORT-критерии — чек-лист ПЕРЕД мыслью о выходе. **ВЫХОД
 ровно один:** строка `HUNT-EXIT: T4-CONFIRMED <High|Critical>` в ledger (после реального T4 High/Crit;
@@ -172,15 +172,15 @@ Medium/Low — банк по ходу, не выход) ЛИБО the operator «
 ОТКЛЮЧЁН** (именно это случилось на Lombard: entry-хук не выстрелил, прозы-бэкапа в dapphunt не было →
 gate был разоружён). Это бэкап на случай, если UserPromptSubmit-хук `hunt_entry_gate.py` не сработал
 (напр. таргет дан голым доменом без immunefi-URL). Если ledger ещё нет — `cp
-bug-bounty-toolkit/sessions/_methodology/hypotheses_web_template.md
-bug-bounty-toolkit/sessions/$DOMAIN/hypotheses.md` (канонический web-template, НЕ свой формат). Каждый блок
+sessions/_methodology/hypotheses_web_template.md
+sessions/$DOMAIN/hypotheses.md` (канонический web-template, НЕ свой формат). Каждый блок
 хука бампает mtime маркера → длинная петля не протухает (TTL 24ч); снимается когда the operator завершил хант.
 Аварийный off форсированной петли: `HUNT-MODE: MANUAL` в ledger. [[reference_brutecat_ai]] [[feedback_no_giveup_hunt]]
 
 1. Создай `status.md` с "in-progress" + датой
 2. **Platform detection**:
    ```bash
-   python3 bug-bounty-toolkit/scripts/submission/platform_detector.py --target $DOMAIN \
+   python3 scripts/submission/platform_detector.py --target $DOMAIN \
        --output sessions/$DOMAIN/platform.json
    ```
 3. Проверь KYC + reputation requirements для detected platform
@@ -198,9 +198,9 @@ Mindset: *"Кто ещё видел эту программу? Sibling reports?"
 ### Phase 2 — Passive recon (~20-30 мин)
 
 Параллельно (один Bash блок, multiple tool calls):
-- `python3 bug-bounty-toolkit/scripts/crtsh_enum.py --domain $DOMAIN --output sessions/$DOMAIN`
-- `python3 bug-bounty-toolkit/scripts/github_recon.py --domain $DOMAIN --output sessions/$DOMAIN`
-- `python3 bug-bounty-toolkit/scripts/email_security.py --domain $DOMAIN --output sessions/$DOMAIN`
+- `python3 scripts/crtsh_enum.py --domain $DOMAIN --output sessions/$DOMAIN`
+- `python3 scripts/github_recon.py --domain $DOMAIN --output sessions/$DOMAIN`
+- `python3 scripts/email_security.py --domain $DOMAIN --output sessions/$DOMAIN`
 - Wayback URLs (waybackurls)
 - security.txt / robots.txt / sitemap.xml через curl
 
@@ -212,10 +212,10 @@ Mindset: *"Какие subdomains существуют и не должны?"*
 
 > Буквенная фаза вне числовой шкалы, между Phase 2 (recon уже собран) и Phase 2.5b/2.5 (hypothesis-gen
 > ещё не тронул код). Зеркалит `J-M` в `/deephunt`
-> ([`independent_model_first.md`](../../bug-bounty-toolkit/sessions/_methodology/independent_model_first.md)),
+> ([`independent_model_first.md`](../../sessions/_methodology/independent_model_first.md)),
 > профиль `dapphunt` (namespace `TB-`, 6 осей доверия вместо state/economic инвариантов контракта).
 > Артефакт: `sessions/$DOMAIN/system_model.md` из
-> [`system_model_web_template.md`](../../bug-bounty-toolkit/sessions/_methodology/system_model_web_template.md).
+> [`system_model_web_template.md`](../../sessions/_methodology/system_model_web_template.md).
 
 **Цель**: получить объективный источник МЕСТА ДО чтения кода — расхождение между тем, какую границу
 доверия dApp ОБЯЗАН держать, и тем, что реально enforced. Не «странная строчка», а инвариант, который
@@ -247,7 +247,7 @@ in Scope**, прошлые репорты (HackenProof Hacktivity / Immunefi dis
 1. **«На всех ли роутах/компонентах/клонах/чейнах?»** — для каждого `ENFORCED` перечислить sibling-
    хендлеры явно (multi-chain wallet adapter, multi-clone deployment, EVM-vs-Solana signing path).
 2. 🔴 **«Канонический механизм или самодел?»** — сверять с колонкой `fingerprint:` **Trust Library**
-   (§ Frontend в [`invariant_library.md`](../../bug-bounty-toolkit/methodology/invariant_library.md)).
+   (§ Frontend в [`invariant_library.md`](../../methodology/invariant_library.md)).
    Функциональность есть + отпечатка нет = `SUBSTITUTED`.
 3. 🔴 **`pred:` против факта** — `pred: ENFORCED` → факт `ABSENT`/`SUBSTITUTED` = высший ранг (место,
    которое ВСЕ считают закрытым). Обратное → `## Model Revisions`.
@@ -271,7 +271,7 @@ Mindset: *"Какая граница доверия ОБЯЗАНА держат�
 
 Если в Phase 2 GitHub нашли public source dApp:
 
-**T5 Patch-Diff seeding (если есть audit history на repo)**: следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding) — найди audit_commit, `git diff audit_commit..HEAD -- '*.sol' '*.ts' '*.tsx'`, drop test/mock, для каждого surviving hunk seed hypothesis в `sessions/$DOMAIN/hypothesis/seeded/`. Эти hypotheses идут FIRST в Phase 2.5 T2 queue.
+**T5 Patch-Diff seeding (если есть audit history на repo)**: следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding) — найди audit_commit, `git diff audit_commit..HEAD -- '*.sol' '*.ts' '*.tsx'`, drop test/mock, для каждого surviving hunk seed hypothesis в `sessions/$DOMAIN/hypothesis/seeded/`. Эти hypotheses идут FIRST в Phase 2.5 T2 queue.
 
 ```bash
 git clone $GITHUB_REPO sessions/$DOMAIN/source/
@@ -289,36 +289,36 @@ git clone $GITHUB_REPO sessions/$DOMAIN/source/
 ниже — СОХРАНЯЕТСЯ как добивка (bundle reading ловит то, что модель до кода не видела).
 
 #### Step 1: Manual bundle reading (не sкипай)
-Прочитай top-3 JS chunks. **Apply T1 rubric** из [`methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric) — но adapted к dApp surface: score 5 = postMessage handlers / wallet adapter init / auth provider config / signature builders; score 1 = analytics / styling / i18n. Пиши output в `sessions/$DOMAIN/attack_surface_rubric.md`. Top-3 reads = score-5 chunks first (не "top-3 by size"). Это нельзя автоматизировать.
+Прочитай top-3 JS chunks. **Apply T1 rubric** из [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric) — но adapted к dApp surface: score 5 = postMessage handlers / wallet adapter init / auth provider config / signature builders; score 1 = analytics / styling / i18n. Пиши output в `sessions/$DOMAIN/attack_surface_rubric.md`. Top-3 reads = score-5 chunks first (не "top-3 by size"). Это нельзя автоматизировать.
 
 #### Step 2: Run hypothesis-driven detectors (параллельно)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/config_drift_miner.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/trust_wildcard_scanner.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/display_vs_reality_grep.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/ --md-out bug-bounty-toolkit/sessions/$DOMAIN/dataflow_map.md
+python3 scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
+python3 scripts/dapphunt/hypothesis/config_drift_miner.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
+python3 scripts/dapphunt/hypothesis/trust_wildcard_scanner.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/
+python3 scripts/dapphunt/hypothesis/display_vs_reality_grep.py --target $DOMAIN --output sessions/$DOMAIN/hypothesis/ --md-out sessions/$DOMAIN/dataflow_map.md
 ```
 
 #### Step 3: AI prompts (structured reading)
 
 Open и apply manually:
-- `bug-bounty-toolkit/scripts/dapphunt/prompts/read_as_attacker_dapp.md`
-- `bug-bounty-toolkit/scripts/dapphunt/prompts/worst_admin_action_dapp.md`
-- `bug-bounty-toolkit/scripts/dapphunt/prompts/trust_boundary_extraction.md`
-- `bug-bounty-toolkit/scripts/dapphunt/prompts/multi_clone_asymmetry.md`
+- `scripts/dapphunt/prompts/read_as_attacker_dapp.md`
+- `scripts/dapphunt/prompts/worst_admin_action_dapp.md`
+- `scripts/dapphunt/prompts/trust_boundary_extraction.md`
+- `scripts/dapphunt/prompts/multi_clone_asymmetry.md`
 
 #### Step 4: Threat-model layer
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/threat_models/apply_dapp.py --target sessions/$DOMAIN
+python3 scripts/dapphunt/threat_models/apply_dapp.py --target sessions/$DOMAIN
 ```
 
 Output: `threat_model_hypotheses.md` — instantiated hypotheses из matched threat-models (auth wildcard / iframe trust / postMessage / DNS takeover / tokenlist CDN).
 
 #### Step 5: Adversarial reading protocol (mandatory)
 
-Для каждого relevant prior disclosed report (HackenProof Hacktivity / Immunefi rekt / rekt.news frontend hijacks / past audits) — apply template из `bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md`. Записать notes в `sessions/$DOMAIN/reading_notes/<source>.md`.
+Для каждого relevant prior disclosed report (HackenProof Hacktivity / Immunefi rekt / rekt.news frontend hijacks / past audits) — apply template из `sessions/_methodology/adversarial_reading.md`. Записать notes в `sessions/$DOMAIN/reading_notes/<source>.md`.
 
 Не «просто прочитать» — **обратно инжинерировать** author's mental model:
 - **Entry point**: с чего начал hunter?
@@ -330,7 +330,7 @@ Output: `threat_model_hypotheses.md` — instantiated hypotheses из matched th
 
 #### Step 6: Triage
 
-Apply `bug-bounty-toolkit/scripts/dapphunt/prompts/hypothesis_triage_dapp.md`. Каждой hypothesis tag:
+Apply `scripts/dapphunt/prompts/hypothesis_triage_dapp.md`. Каждой hypothesis tag:
 - REFUTED — drop, save в `refuted_hypotheses.md` для learning
 - PLAUSIBLE — proceed
 - INTERESTING — proceed
@@ -365,7 +365,7 @@ Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Save в
 ### Phase 3 — Frontend stack fingerprint + bundle hygiene (~20 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/stack_fingerprint.py --target $DOMAIN \
+python3 scripts/dapphunt/core/stack_fingerprint.py --target $DOMAIN \
     --output sessions/$DOMAIN/stack_fingerprint.json
 ```
 
@@ -379,7 +379,7 @@ Detects:
 
 CVE lookup:
 ```bash
-python3 bug-bounty-toolkit/scripts/cve_patch_diff.py --versions sessions/$DOMAIN/stack_fingerprint.json
+python3 scripts/cve_patch_diff.py --versions sessions/$DOMAIN/stack_fingerprint.json
 ```
 
 **Source map check** (может быть jackpot):
@@ -394,14 +394,14 @@ python3 bug-bounty-toolkit/scripts/cve_patch_diff.py --versions sessions/$DOMAIN
 - Любой leaked secret = finding (sometimes Medium-High). **Нашёл ключ → severity-gate `secret_validate`:**
   `py -3 scripts/web2/secret_validate.py` / `validate(key, kind=…, allow_live=True, opsec_ok=True)` —
   **read-only** проверка «жив ли + scope» (dead=Low, live=High, live+broad-scope=Critical). Fail-closed, root/admin не трогаем.
-- **Единый Exposure-скан (P0-2 Exposure Engine):** static по bundle+source-map+clone — `py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/secret_exposure_scanner.py --target <bundle-dir/clone> --session-dir bug-bounty-toolkit/sessions/{slug}`; **runtime** (живой фронт, ТОЛЬКО ПОСЛЕ `opsec_preflight` fail-closed) — `runtime_harness.capture_exposure(<DOM / все JS-чанки / network-ответы / localStorage·sessionStorage·IndexedDB / window-глобалы>)` ловит ключ/данные на странице, в т.ч. **закодированные** (decode-слой). BaaS: Supabase `service_role`=Critical, Firebase config → проверь world-readable rules. Оба пишут `EXPOSURE-SCAN:` ledger-строку (снимает gate); no-exfil (значение редактится).
+- **Единый Exposure-скан (P0-2 Exposure Engine):** static по bundle+source-map+clone — `py -3 -X utf8 scripts/_methodology/secret_exposure_scanner.py --target <bundle-dir/clone> --session-dir sessions/{slug}`; **runtime** (живой фронт, ТОЛЬКО ПОСЛЕ `opsec_preflight` fail-closed) — `runtime_harness.capture_exposure(<DOM / все JS-чанки / network-ответы / localStorage·sessionStorage·IndexedDB / window-глобалы>)` ловит ключ/данные на странице, в т.ч. **закодированные** (decode-слой). BaaS: Supabase `service_role`=Critical, Firebase config → проверь world-readable rules. Оба пишут `EXPOSURE-SCAN:` ledger-строку (снимает gate); no-exfil (значение редактится).
 
 Mindset: *"Старые версии? Source maps? Leaked secrets в bundle? Ключ/данные на странице (декодировать!)?"*
 
 ### Phase 4 — Auth provider config audit (КЛЮЧЕВАЯ, ~30-45 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/auth_provider_probe.py --target $DOMAIN \
+python3 scripts/dapphunt/core/auth_provider_probe.py --target $DOMAIN \
     --output sessions/$DOMAIN/auth_provider_config.json
 ```
 
@@ -424,11 +424,11 @@ Mindset: *"Какой wildcard где живёт? Какой trust expanded?"*
 ### Phase 5 — Iframe trust composition + DNS hygiene (~30 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/iframe_trust_check.py --target $DOMAIN \
+python3 scripts/dapphunt/core/iframe_trust_check.py --target $DOMAIN \
     --subdomains sessions/$DOMAIN/crtsh.json \
     --output sessions/$DOMAIN/iframe_trust_matrix.json
 
-python3 bug-bounty-toolkit/scripts/dapphunt/core/dapp_clone_detector.py --target $DOMAIN \
+python3 scripts/dapphunt/core/dapp_clone_detector.py --target $DOMAIN \
     --auth-id $(jq -r '.privy.app_id' sessions/$DOMAIN/auth_provider_config.json) \
     --output sessions/$DOMAIN/clones.json
 ```
@@ -450,12 +450,12 @@ Compare auth provider `frame-ancestors` vs `allowed_domains` — нестыко�
 **Cross-Clone Differential (обязательно, питает ось clone-parity)**:
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py --target $DOMAIN \
+python3 scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py --target $DOMAIN \
     --subdomains sessions/$DOMAIN/crtsh.json \
-    --md-out bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md
+    --md-out sessions/$DOMAIN/clone_diff.md
 ```
 
-🔴 **`--md-out` — ПОЛНЫМ session-путём** (`bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md`, тем же
+🔴 **`--md-out` — ПОЛНЫМ session-путём** (`sessions/$DOMAIN/clone_diff.md`, тем же
 каталогом, где лежит `hypotheses.md`), не CWD-относительным именем и не в подпапке — иначе completeness-гейт
 `active_clone_diff_skipped` не найдёт файл рядом с ledger'ом и будет держать turn. Если клонов нет —
 пометь партицию `P-CLONE` в Scout Fan-Out `N/A — single deploy` (легитимный снятие гейта).
@@ -465,7 +465,7 @@ Mindset: *"Который subdomain рендерится в iframe и не до�
 ### Phase 6 — Wallet integration audit (multi-chain, ~30-45 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/wallet_integration_grep.py --target $DOMAIN \
+python3 scripts/dapphunt/core/wallet_integration_grep.py --target $DOMAIN \
     --output sessions/$DOMAIN/wallet_integration_audit.json
 ```
 
@@ -477,7 +477,7 @@ Chain-conditional grep'ы:
 - **Aptos**: `signTransaction`, `signMessage`
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/siwe_audit.py --target $DOMAIN \
+python3 scripts/dapphunt/core/siwe_audit.py --target $DOMAIN \
     --output sessions/$DOMAIN/siwe_audit.json
 ```
 
@@ -486,7 +486,7 @@ Replay attacks, nonce expiry, domain spoof для SIWE/SIWS.
 **Wallet metadata XSS** (новое — WalletConnect/EIP-6963/wallet-standard peer metadata grep):
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/wallet_metadata_xss_check.py --target $DOMAIN \
+python3 scripts/dapphunt/core/wallet_metadata_xss_check.py --target $DOMAIN \
     --output sessions/$DOMAIN/wallet_metadata_xss.json
 ```
 
@@ -494,26 +494,26 @@ python3 bug-bounty-toolkit/scripts/dapphunt/core/wallet_metadata_xss_check.py --
 
 **Interactive testing** (manual scaffolding для the operator):
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/wallet_test/burner_connect.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/dapphunt/wallet_test/signature_inspector.py --eip712-stdin
+python3 scripts/dapphunt/wallet_test/burner_connect.py --target $DOMAIN
+python3 scripts/dapphunt/wallet_test/signature_inspector.py --eip712-stdin
 ```
 
 Connect burner `0xA094...1332`, inspect signing flow live — какие EIP-712 domains, какой message format, какие chainId.
 
 **Headless via EIP-1193 mock** (без real wallet):
-- `bug-bounty-toolkit/scripts/dapphunt/wallet_test/eip1193_mock_provider.js` — inject в Chromium через DevTools
+- `scripts/dapphunt/wallet_test/eip1193_mock_provider.js` — inject в Chromium через DevTools
 
 🔴 **R1-инжект — порядок ОБЯЗАТЕЛЕН** (§4.1): `eip1193_mock_provider.js` идёт через init-script /
 `browser_evaluate` **ДО** `browser_navigate`, не после. dApp читает `window.ethereum` на первой
 инициализации страницы — инжект после `navigate` промахивается мимо этого момента, harness увидит
 "no wallet detected" вместо реального runtime-поведения (R1: mock-vs-real signing flow observation).
-- OPSEC-gate (`bug-bounty-toolkit/scripts/dapphunt/wallet_test/opsec_preflight.py`) — ПЕРЕД любым
+- OPSEC-gate (`scripts/dapphunt/wallet_test/opsec_preflight.py`) — ПЕРЕД любым
   запуском Playwright, fail-closed.
 - Недостижимо инжектнуть до page-load (SPA/anti-automation блочит init-script) → fallback MANUAL:
   `signature_inspector.py --eip712-stdin` offline на захваченном payload, не через живой browser.
 
 **Runtime Observation Harness (ядро Phase 6, поверх R1-инжекта)** —
-`bug-bounty-toolkit/scripts/dapphunt/wallet_test/runtime_harness.py`, browser-first наблюдение
+`scripts/dapphunt/wallet_test/runtime_harness.py`, browser-first наблюдение
 поверх mock/live wallet вместо статического grep:
 - `run_signature_diff(dom_view, signed_payload, target)` — displayed-in-DOM сумма/получатель/chainId
   vs то, что реально ушло на подпись (**display vs reality** класс, но по рантайм-observed данным).
@@ -535,24 +535,24 @@ Claude может сам подписывать burner tx для hypothesis veri
 
 ```bash
 # Spin up Base mainnet fork — no real money
-py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/wallet_test/onchain_poc_harness.py \
+py -3 -X utf8 scripts/dapphunt/wallet_test/onchain_poc_harness.py \
     --session sessions/$DOMAIN fork-up --chain base
 
 # Cross-chain replay check — read-only, no broadcast
-py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/wallet_test/onchain_poc_harness.py \
+py -3 -X utf8 scripts/dapphunt/wallet_test/onchain_poc_harness.py \
     --session sessions/$DOMAIN replay-signature \
     --signature 0x... --typed-data captured_payload.json --dst-chain base
 
 # Submit Permit on fork to observe allowance state
-py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/wallet_test/onchain_poc_harness.py \
+py -3 -X utf8 scripts/dapphunt/wallet_test/onchain_poc_harness.py \
     --session sessions/$DOMAIN send --chain fork --to $TOKEN --sig 'permit(...)' --params ...
 
 # Read burner balance (mainnet read-only)
-py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/wallet_test/onchain_poc_harness.py \
+py -3 -X utf8 scripts/dapphunt/wallet_test/onchain_poc_harness.py \
     balance --chain base
 
 # At hunt end — auto-revoke any pending approvals + emit summary
-py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/wallet_test/onchain_poc_harness.py \
+py -3 -X utf8 scripts/dapphunt/wallet_test/onchain_poc_harness.py \
     --session sessions/$DOMAIN session-end
 ```
 
@@ -568,7 +568,7 @@ Mindset: *"Чем wallet подписывает и доверяет ли он э
 ### Phase 7 — postMessage handler audit (~20 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/postmessage_audit.py --target $DOMAIN \
+python3 scripts/dapphunt/core/postmessage_audit.py --target $DOMAIN \
     --output sessions/$DOMAIN/postmessage_audit.json
 ```
 
@@ -589,10 +589,10 @@ Mindset: *"Кто шлёт postMessage сюда и проверяется ли o
 ### Phase 8 — Web3 frontend-specific surfaces (~45-60 мин)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/core/sri_csp_audit.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/dapphunt/core/tokenlist_audit.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/dapphunt/core/indexer_endpoint_grep.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/web3/frontend_hijack_check.py --target $DOMAIN
+python3 scripts/dapphunt/core/sri_csp_audit.py --target $DOMAIN
+python3 scripts/dapphunt/core/tokenlist_audit.py --target $DOMAIN
+python3 scripts/dapphunt/core/indexer_endpoint_grep.py --target $DOMAIN
+python3 scripts/web3/frontend_hijack_check.py --target $DOMAIN
 ```
 
 Coverage:
@@ -619,11 +619,11 @@ Coverage:
 - Bundler/Paymaster trust (ERC-4337)
 
 Чек-листы:
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/web3_frontend_only.md`
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/display_vs_reality.md`
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/ai_in_dapp.md`
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/mobile_dapp_browser.md`
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/embedded_vs_external_wallet.md`
+- `scripts/dapphunt/checklists/web3_frontend_only.md`
+- `scripts/dapphunt/checklists/display_vs_reality.md`
+- `scripts/dapphunt/checklists/ai_in_dapp.md`
+- `scripts/dapphunt/checklists/mobile_dapp_browser.md`
+- `scripts/dapphunt/checklists/embedded_vs_external_wallet.md`
 
 Mindset: *"UI lies — где display != reality?"*
 
@@ -632,8 +632,8 @@ Mindset: *"UI lies — где display != reality?"*
 Только если `chain_class` includes `tma` ИЛИ stack detected `Telegram.WebApp` / `tgWebAppData`:
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/tma/tma_initdata_audit.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/dapphunt/tma/tma_sandbox_probe.py --target $DOMAIN
+python3 scripts/dapphunt/tma/tma_initdata_audit.py --target $DOMAIN
+python3 scripts/dapphunt/tma/tma_sandbox_probe.py --target $DOMAIN
 ```
 
 Coverage:
@@ -641,7 +641,7 @@ Coverage:
 - Telegram.WebApp API misuse (biometric trust, theme manipulation, mainButton race)
 - Cross-bot initData replay
 
-Чек-лист: `bug-bounty-toolkit/scripts/dapphunt/checklists/tma_specific.md`
+Чек-лист: `scripts/dapphunt/checklists/tma_specific.md`
 
 ### Phase 9 — Active recon (СПРОСИ the operator, ~30-60 мин)
 
@@ -649,8 +649,8 @@ Coverage:
 
 ```bash
 docker run --rm -v $(pwd)/sessions/$DOMAIN:/out bbt /scripts/recon.sh $DOMAIN /out
-python3 bug-bounty-toolkit/scripts/websocket_test.py --target $DOMAIN
-python3 bug-bounty-toolkit/scripts/graphql_advanced.py --target $DOMAIN
+python3 scripts/websocket_test.py --target $DOMAIN
+python3 scripts/graphql_advanced.py --target $DOMAIN
 ```
 
 Coverage:
@@ -692,9 +692,9 @@ Mindset: *"Какие 2-3 findings composed дают High/Critical?"*
 
 ### Phase 11 — Bounty check + Auto-draft report (~30-45 мин)
 
-**Pre-flight 1: T4 Two-Agent Verifier Pass** (ОБЯЗАТЕЛЬНО для каждой Med+ находки перед auto-draft) — следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass). Spawn research subagent с COLD context, hand ему ТОЛЬКО target URL + repro steps + PoC HAR/video, НЕ давай severity claim и narrative. Verifier prompt: "что репро реально показывает? есть ли silent precondition (specific browser, logged-in state, race window)? mainnet-realistic attacker scenario? severity tier?". Если verifier kill → drop. Если 2+ tier downgrade → accept verifier's severity. Discrepancies log в `sessions/_methodology/verifier_calibration.jsonl`.
+**Pre-flight 1: T4 Two-Agent Verifier Pass** (ОБЯЗАТЕЛЬНО для каждой Med+ находки перед auto-draft) — следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass). Spawn research subagent с COLD context, hand ему ТОЛЬКО target URL + repro steps + PoC HAR/video, НЕ давай severity claim и narrative. Verifier prompt: "что репро реально показывает? есть ли silent precondition (specific browser, logged-in state, race window)? mainnet-realistic attacker scenario? severity tier?". Если verifier kill → drop. Если 2+ tier downgrade → accept verifier's severity. Discrepancies log в `sessions/_methodology/verifier_calibration.jsonl`.
 
-**Pre-flight 2: T3 Exploit Chaining Check** — для каждой находки прошедшей verifier apply [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) Point B. dApp-specific chain examples: wildcard `*.iftl.info` + missing X-Frame-Options + dangling CNAME = phishing chain (SynFutures-class). Если находка chain'ится — severity +1-2 tier, переписать как chain в report.
+**Pre-flight 2: T3 Exploit Chaining Check** — для каждой находки прошедшей verifier apply [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) Point B. dApp-specific chain examples: wildcard `*.iftl.info` + missing X-Frame-Options + dangling CNAME = phishing chain (SynFutures-class). Если находка chain'ится — severity +1-2 tier, переписать как chain в report.
 
 #### Severity rubrics (per platform)
 
@@ -708,7 +708,7 @@ Mindset: *"Какие 2-3 findings composed дают High/Critical?"*
 tier для находки считай функцией, не на глаз:
 
 ```python
-import sys; sys.path.insert(0, "bug-bounty-toolkit/scripts/_methodology")
+import sys; sys.path.insert(0, "scripts/_methodology")
 from web_severity import severity
 
 verdict = severity(
@@ -727,7 +727,7 @@ reachable — сверь с Phase 9 verify-active). Fail-open на неизве�
 #### Auto-draft через submission tools
 
 ```bash
-python3 bug-bounty-toolkit/scripts/submission/report_autodraft.py \
+python3 scripts/submission/report_autodraft.py \
     --session sessions/$DOMAIN \
     --platform $(jq -r '.platform' sessions/$DOMAIN/platform.json) \
     --finding $FINDING_ID \
@@ -739,8 +739,8 @@ Generates platform-specific template filled из session output.
 #### WAF + voice linter passes (MANDATORY перед submit)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/submission/waf_safe_linter.py --file sessions/$DOMAIN/draft_report.md
-python3 bug-bounty-toolkit/scripts/submission/voice_tone_linter.py --file sessions/$DOMAIN/draft_report.md
+python3 scripts/submission/waf_safe_linter.py --file sessions/$DOMAIN/draft_report.md
+python3 scripts/submission/voice_tone_linter.py --file sessions/$DOMAIN/draft_report.md
 ```
 
 **Auto-fix suggestions для**:
@@ -752,7 +752,7 @@ python3 bug-bounty-toolkit/scripts/submission/voice_tone_linter.py --file sessio
 #### Если WAF блочит submit (CF 403)
 
 ```bash
-python3 bug-bounty-toolkit/scripts/submission/ray_id_support_handler.py \
+python3 scripts/submission/ray_id_support_handler.py \
     --platform hackenproof --ray-id $RAY_ID --report-id $REPORT_ID \
     --output sessions/$DOMAIN/support_request.md
 ```
@@ -762,7 +762,7 @@ Generates support template с Ray ID + report ID для Intercom / support@.
 #### Race window estimation
 
 ```bash
-python3 bug-bounty-toolkit/scripts/web3/post_find/race_window_estimator.py \
+python3 scripts/web3/post_find/race_window_estimator.py \
     --finding sessions/$DOMAIN/finding.json \
     --target $DOMAIN
 ```
@@ -776,7 +776,7 @@ Mindset: *"Severity defensible? WAF triggers cleared? Race window?"*
 **Триггер**: только если confirmed finding имеет cross-program applicability.
 
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py \
+python3 scripts/dapphunt/hypothesis/asymmetry_scanner_dapp.py \
     --cross-program \
     --root-cause "auth_provider_wildcard" \
     --candidate-list sessions/_proactive/dapp_programs.json \
@@ -801,7 +801,7 @@ Mindset: *"Same root cause в N других programs?"*
    # target, class, hypothesis_text, preflight_verdict, preflight_severity_ceiling,
    # preflight_cost_estimate_hours, actual_cost_hours, outcome, notes
    ```
-   В `bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl`
+   В `sessions/_methodology/calibration_log.jsonl`
 
 2. Update memory:
    - `feedback_dapphunt_methodology.md` — findings + edge cases
@@ -809,21 +809,21 @@ Mindset: *"Same root cause в N других programs?"*
 
 3. Если finding paid → `_knowledge_base.py` + `_crm.py`:
    ```bash
-   python3 bug-bounty-toolkit/scripts/_knowledge_base.py record --finding-id F<N> --session sessions/$DOMAIN
-   python3 bug-bounty-toolkit/scripts/_crm.py add --target $DOMAIN --finding F<N> --platform $PLATFORM
+   python3 scripts/_knowledge_base.py record --finding-id F<N> --session sessions/$DOMAIN
+   python3 scripts/_crm.py add --target $DOMAIN --finding F<N> --platform $PLATFORM
    ```
 
 4. Если finding rejected → classify reason:
    ```bash
-   python3 bug-bounty-toolkit/scripts/_methodology/failure_analysis.py classify \
+   python3 scripts/_methodology/failure_analysis.py classify \
        --crm-id $REPORT_ID --reason "<reject text>" \
        --root-cause-class "<class>" --lesson "<what we learned>"
    ```
 
 5. **dapphunt-specific lessons** — recompute class win-rates / cost / severity weights:
    ```bash
-   python3 bug-bounty-toolkit/scripts/dapphunt/_dapphunt_lessons.py weights
-   python3 bug-bounty-toolkit/scripts/dapphunt/_dapphunt_lessons.py recurring
+   python3 scripts/dapphunt/_dapphunt_lessons.py weights
+   python3 scripts/dapphunt/_dapphunt_lessons.py recurring
    ```
    Producs `sessions/_methodology/dapphunt_weights.json` (machine-readable, per-class recommendation: STRONG_HUNT / CONTINUE / OBSERVE / REDUCE_PRIORITY / INSUFFICIENT_DATA) и `dapphunt_lessons.md` (human-readable digest).
 
@@ -858,18 +858,18 @@ Time budget: ~3-6ч max до first confirmed finding. Если 0 — точно 
 Параллельно собираем сырьё, фильтр **только dApp scope**:
 
 ```bash
-python3 bug-bounty-toolkit/scripts/proactive.py --output sessions/_proactive --source all --filter dapp
-python3 bug-bounty-toolkit/scripts/web3/immunefi_scope.py --list-new --filter web --output sessions/_proactive/immunefi_dapps.json
-python3 bug-bounty-toolkit/scripts/web3/cantina_scope.py --list-new --filter web --output sessions/_proactive/cantina_dapps.json
+python3 scripts/proactive.py --output sessions/_proactive --source all --filter dapp
+python3 scripts/web3/immunefi_scope.py --list-new --filter web --output sessions/_proactive/immunefi_dapps.json
+python3 scripts/web3/cantina_scope.py --list-new --filter web --output sessions/_proactive/cantina_dapps.json
 ```
 
 Дополнительно real-time monitors:
 ```bash
-python3 bug-bounty-toolkit/scripts/dapphunt/monitors/auth_provider_drift_monitor.py \
+python3 scripts/dapphunt/monitors/auth_provider_drift_monitor.py \
     --watchlist sessions/_proactive/dapp_programs.json \
     --output sessions/_monitors/
 
-python3 bug-bounty-toolkit/scripts/dapphunt/monitors/dapp_clone_spawn_monitor.py \
+python3 scripts/dapphunt/monitors/dapp_clone_spawn_monitor.py \
     --watchlist sessions/_proactive/dapp_programs.json \
     --output sessions/_monitors/
 ```
@@ -952,24 +952,24 @@ Phase 4 (Auth provider) chain-agnostic. Phase 5 (iframe trust) chain-agnostic. P
 
 ## Reference Files
 
-- `bug-bounty-toolkit/scripts/dapphunt/prompts/*.md` — hypothesis generation prompts
-- `bug-bounty-toolkit/scripts/dapphunt/checklists/*.md` — per-surface checklists
-- `bug-bounty-toolkit/scripts/dapphunt/threat_models/*.yaml` — reusable threat models
-- `bug-bounty-toolkit/scripts/submission/*.py` — shared submission tools (WAF + voice + autodraft)
-- `bug-bounty-toolkit/templates/dapp_reports/*.md` — per-platform report templates
-- `bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md` — adversarial reading protocol
-- 🔴 `bug-bounty-toolkit/sessions/_methodology/attention_gap_mapping.md` — T14: инверсия аудит-карты + следы спешки в git (применимо, если у dApp есть OSS-репо/отчёты)
+- `scripts/dapphunt/prompts/*.md` — hypothesis generation prompts
+- `scripts/dapphunt/checklists/*.md` — per-surface checklists
+- `scripts/dapphunt/threat_models/*.yaml` — reusable threat models
+- `scripts/submission/*.py` — shared submission tools (WAF + voice + autodraft)
+- `templates/dapp_reports/*.md` — per-platform report templates
+- `sessions/_methodology/adversarial_reading.md` — adversarial reading protocol
+- 🔴 `sessions/_methodology/attention_gap_mapping.md` — T14: инверсия аудит-карты + следы спешки в git (применимо, если у dApp есть OSS-репо/отчёты)
 - 🔴 T10 web-профиль (Phase P-SM, `system_model_web_template.md`) для нормального dApp — **модель ОБЯЗАТЕЛЬНА**: строй `sessions/$DOMAIN/system_model.md` с `TB-I` (namespace `TB-` включает web-режим completeness-gate автоматически). `MODEL: N/A` в Loop State законен ТОЛЬКО для чистого статического сайта без web3/auth-поверхности — тогда пивот на `/hunt`. Исключение в другую сторону: in-scope контрактный репо → заходи через `J-M` в `/deephunt` (namespace `I-`, не `TB-`).
-- `bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md` — pre-flight 5Q checklist
-- `bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl` — personal accuracy tracking
-- `bug-bounty-toolkit/scripts/dapphunt/wallet_test/opsec_preflight.py` — fail-closed OPSEC gate перед любым live-браузером (Phase 6)
-- `bug-bounty-toolkit/scripts/dapphunt/wallet_test/runtime_harness.py` — Runtime Observation Harness: `run_signature_diff` / `capture_headers` / `capture_data_source` / `capture_postmessage` / `valid_burner_signature` / `write_runtime_diff` (Phase 6/7 ядро)
-- `bug-bounty-toolkit/scripts/dapphunt/wallet_test/humanize.py` — детерминированные anti-bot хелперы (`bezier_path`/`typo_type`/`overshoot_scroll`), fallback-путь Runtime Harness
-- `bug-bounty-toolkit/scripts/_methodology/differential_observation.py` — примитив `differential(ctx_a, ctx_b, probe) → Divergence|None`, питает `runtime_harness.py` capture-функции и `D-NN`-строки
-- `bug-bounty-toolkit/scripts/_methodology/web_severity.py` — `severity(factors, platform, profile="frontend") -> SeverityVerdict` (Phase 11 severity verdict)
-- 🔴 `bug-bounty-toolkit/methodology/invariant_library.md` — `## § Frontend` (dapphunt-примитивы: инвариант + `fingerprint:` канонического механизма, сверка P-SM оператора 2)
-- `bug-bounty-toolkit/scripts/dapphunt/threat_models/inverted_external_input.yaml` — inverted threat-model (Phase 2.5 Step 4)
-- Runtime-артефакты сессии: `bug-bounty-toolkit/sessions/$DOMAIN/clone_diff.md` (Phase 5 Cross-Clone), `bug-bounty-toolkit/sessions/$DOMAIN/dataflow_map.md` (Data-Flow Divergence, Phase 2.5), `bug-bounty-toolkit/sessions/$DOMAIN/runtime_diff/*.json` (Phase 6/7 `write_runtime_diff` вывод)
+- `sessions/_methodology/hypothesis_quality.md` — pre-flight 5Q checklist
+- `sessions/_methodology/calibration_log.jsonl` — personal accuracy tracking
+- `scripts/dapphunt/wallet_test/opsec_preflight.py` — fail-closed OPSEC gate перед любым live-браузером (Phase 6)
+- `scripts/dapphunt/wallet_test/runtime_harness.py` — Runtime Observation Harness: `run_signature_diff` / `capture_headers` / `capture_data_source` / `capture_postmessage` / `valid_burner_signature` / `write_runtime_diff` (Phase 6/7 ядро)
+- `scripts/dapphunt/wallet_test/humanize.py` — детерминированные anti-bot хелперы (`bezier_path`/`typo_type`/`overshoot_scroll`), fallback-путь Runtime Harness
+- `scripts/_methodology/differential_observation.py` — примитив `differential(ctx_a, ctx_b, probe) → Divergence|None`, питает `runtime_harness.py` capture-функции и `D-NN`-строки
+- `scripts/_methodology/web_severity.py` — `severity(factors, platform, profile="frontend") -> SeverityVerdict` (Phase 11 severity verdict)
+- 🔴 `methodology/invariant_library.md` — `## § Frontend` (dapphunt-примитивы: инвариант + `fingerprint:` канонического механизма, сверка P-SM оператора 2)
+- `scripts/dapphunt/threat_models/inverted_external_input.yaml` — inverted threat-model (Phase 2.5 Step 4)
+- Runtime-артефакты сессии: `sessions/$DOMAIN/clone_diff.md` (Phase 5 Cross-Clone), `sessions/$DOMAIN/dataflow_map.md` (Data-Flow Divergence, Phase 2.5), `sessions/$DOMAIN/runtime_diff/*.json` (Phase 6/7 `write_runtime_diff` вывод)
 
 ---
 

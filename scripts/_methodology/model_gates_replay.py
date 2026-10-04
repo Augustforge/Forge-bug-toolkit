@@ -1368,8 +1368,8 @@ print("  [%s] FIRING returns the ledger relpath (not a bare None): got=%r"
       % ("PASS" if _ok_path else "FAIL", _reason_path))
 results.append(_ok_path)
 # The reason constant carries the toolkit-rooted path of the producer (co-located triple-sync -- not a bare sessions/$DOMAIN).
-_ok_reason = ("bug-bounty-toolkit/sessions/$DOMAIN/ai_trust_matrix.md" in g.AI_TRUST_REASON)
-print("  [%s] AI_TRUST_REASON carries the toolkit-rooted `bug-bounty-toolkit/sessions/$DOMAIN/ai_trust_matrix.md`: got=%s"
+_ok_reason = ("sessions/$DOMAIN/ai_trust_matrix.md" in g.AI_TRUST_REASON)
+print("  [%s] AI_TRUST_REASON carries the toolkit-rooted `sessions/$DOMAIN/ai_trust_matrix.md`: got=%s"
       % ("PASS" if _ok_reason else "FAIL", _ok_reason))
 results.append(_ok_reason)
 

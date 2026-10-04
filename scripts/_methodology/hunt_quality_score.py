@@ -31,7 +31,7 @@ import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(_HERE))  # bug-bounty-toolkit/
+ROOT = os.path.dirname(os.path.dirname(_HERE))  # 
 DEFAULT_LOG = os.path.join(ROOT, "sessions", "_methodology", "calibration_log.jsonl")
 
 # normalization caps (retune points)

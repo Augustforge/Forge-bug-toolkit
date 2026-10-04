@@ -28,7 +28,7 @@ export const meta = {
 }
 
 // ── args ────────────────────────────────────────────────────────────────────
-// { slug: "<target>"  (required, folder bug-bounty-toolkit/sessions/<slug>/),
+// { slug: "<target>"  (required, folder sessions/<slug>/),
 //   dryAxisLimit?: number (how many dry rounds before rotating the axis, default 3),
 //   maxAxes?: number (how many T9 axes to run before a surface status, default 4),
 //   maxRounds?: number (hard ceiling of rounds, default 40) }
@@ -37,7 +37,7 @@ if (!slug) throw new Error('hunt-driver: args.slug is required (folder sessions/
 const DRY_AXIS_LIMIT = (args && args.dryAxisLimit) || 3
 const MAX_AXES = (args && args.maxAxes) || 4
 const MAX_ROUNDS = (args && args.maxRounds) || 40
-const LEDGER = `bug-bounty-toolkit/sessions/${slug}/hypotheses.md`
+const LEDGER = `sessions/${slug}/hypotheses.md`
 
 const ROUND_SCHEMA = {
   type: 'object',

@@ -51,7 +51,7 @@ import importlib.util
 
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_SCRIPTS_DIR = os.path.dirname(_HERE)                                     # .../bug-bounty-toolkit/scripts
+_SCRIPTS_DIR = os.path.dirname(_HERE)                                     # .../scripts
 _METHOD_DIR = os.path.join(_SCRIPTS_DIR, "_methodology")
 _RUNTIME_HARNESS_PATH = os.path.join(_SCRIPTS_DIR, "dapphunt", "wallet_test", "runtime_harness.py")
 

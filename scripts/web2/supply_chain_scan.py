@@ -38,7 +38,7 @@ JSON / любой сбой скана → пустой список, артеф�
     run_supply_chain_scan(session_dir, package_json_path=None, lock_path=None, npmrc_path=None) -> str
 
 CLI:
-    py -3 -X utf8 supply_chain_scan.py --session-dir bug-bounty-toolkit/sessions/example.com \
+    py -3 -X utf8 supply_chain_scan.py --session-dir sessions/example.com \
         --target-dir path/to/cloned/target
     py -3 -X utf8 supply_chain_scan.py --session-dir <dir> --package-json a/package.json --lock a/package-lock.json
 """
@@ -626,7 +626,7 @@ def main(argv=None):
         description="supply_chain_scan — npm dependency-confusion/typosquat/unclaimed/lockfile-injection "
                     "recon-producer (FDE Plan 7, §63)")
     ap.add_argument("--session-dir", required=True,
-                    help="toolkit-rooted session dir, e.g. bug-bounty-toolkit/sessions/example.com")
+                    help="toolkit-rooted session dir, e.g. sessions/example.com")
     ap.add_argument("--package-json", help="path to target package.json")
     ap.add_argument("--lock", help="path to target package-lock.json / npm-shrinkwrap.json / yarn.lock")
     ap.add_argument("--npmrc", help="path to target .npmrc (optional — sharpens dependency-confusion)")

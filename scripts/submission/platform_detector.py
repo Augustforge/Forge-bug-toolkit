@@ -5,7 +5,7 @@ platform_detector.py — Identify which bug bounty platform hosts a given target
 Detection strategy (in order of confidence):
 1. Direct match against platform-owned domains (hackenproof.com, etc.)
 2. Local cache of known program → platform mapping
-   (bug-bounty-toolkit/sessions/_proactive/platforms_cache.json)
+   (sessions/_proactive/platforms_cache.json)
 3. Lightweight curl probe of /.well-known/security.txt + meta tags for contact: links
 
 Usage:
@@ -181,7 +181,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--cache",
         type=Path,
-        default=Path("bug-bounty-toolkit/sessions/_proactive/platforms_cache.json"),
+        default=Path("sessions/_proactive/platforms_cache.json"),
         help="Path to local program→platform mapping cache.",
     )
     parser.add_argument("--quiet", action="store_true")

@@ -16,7 +16,7 @@ scalar-mul was set via `assign_advice()` with no constraint binding it to the re
 base, so a malicious prover could pick any base and forge [ivk]g_d = pk_d, enabling
 double-spend / unbounded undetectable inflation. Fix was `assign_advice` -> `copy_advice`.
 
-See: bug-bounty-toolkit/sessions/_methodology/learning_paths/zk.md (worked example),
+See: sessions/_methodology/learning_paths/zk.md (worked example),
 memory project_zcash_orchard_halo2.
 
 This tool does NOT prove a bug. It ranks call sites so a human (or AI agent) reviews

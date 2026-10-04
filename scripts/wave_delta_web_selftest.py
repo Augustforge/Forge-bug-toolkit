@@ -25,7 +25,7 @@ Proves:
      REMOVED `legacy_alive_check: True` field (Plan 6 §43.7/§52) are unchanged -- this task did
      not touch compute_delta() at all, verified behaviorally.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/wave_delta_web_selftest.py
+Run: py -3 -X utf8 scripts/wave_delta_web_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

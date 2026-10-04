@@ -15,7 +15,7 @@ Proves:
  (7) state_machine_analyzer.py web2 branch: analyze_business_flow() delegates to business_logic.py
      and returns the same shape (web3 .sol scanning path untouched -- import-only regression proof).
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/business_logic_selftest.py
+Run: py -3 -X utf8 scripts/web2/business_logic_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

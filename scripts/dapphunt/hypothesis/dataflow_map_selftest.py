@@ -17,7 +17,7 @@ Proves:
      output (asdict + json.dumps) still work unchanged, and main() without --md-out does NOT
      write a dataflow_map.md anywhere.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/hypothesis/dataflow_map_selftest.py
+Run: py -3 -X utf8 scripts/dapphunt/hypothesis/dataflow_map_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

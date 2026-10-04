@@ -542,7 +542,7 @@ def main():
         snap_path = os.path.join(sess, "snapshot.json")
         revisit_note = ""
         snap_tail = ""
-        wdcmd = "py -3 -X utf8 bug-bounty-toolkit/scripts/wave_delta.py"
+        wdcmd = "py -3 -X utf8 scripts/wave_delta.py"
         if os.path.exists(snap_path):
             sdate = ""
             snap_model = ""

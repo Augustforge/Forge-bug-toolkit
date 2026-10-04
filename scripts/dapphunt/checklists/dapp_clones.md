@@ -33,15 +33,15 @@ For each clone host:
 
 ```bash
 # 1. Crt.sh subdomain enum
-python3 bug-bounty-toolkit/scripts/crtsh_enum.py --domain iftl.info --output sessions/$DOMAIN/crtsh.json
+python3 scripts/crtsh_enum.py --domain iftl.info --output sessions/$DOMAIN/crtsh.json
 # 2. Detect clones
-python3 bug-bounty-toolkit/scripts/dapphunt/core/dapp_clone_detector.py \
+python3 scripts/dapphunt/core/dapp_clone_detector.py \
     --primary https://oyster.synfutures.com/ \
     --subdomains sessions/$DOMAIN/crtsh.json \
     --auth-id clz2gl5r702phkqjy3zhlalh9 \
     --output sessions/$DOMAIN/clones.json
 # 3. Verify framing posture on each detected clone
-python3 bug-bounty-toolkit/scripts/dapphunt/core/iframe_trust_check.py \
+python3 scripts/dapphunt/core/iframe_trust_check.py \
     --primary https://oyster.synfutures.com/ \
     --subdomains sessions/$DOMAIN/crtsh.json
 ```

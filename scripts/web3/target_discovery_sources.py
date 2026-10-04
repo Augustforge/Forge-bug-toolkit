@@ -405,7 +405,7 @@ def _main(argv=None):
     if not args.live:
         print("--live is required for real collection. Example:\n"
               "  py -3 -X utf8 scripts/web3/target_discovery_sources.py --live "
-              "--patterns solana,amm --out bug-bounty-toolkit/sessions/_discovery/programs.json",
+              "--patterns solana,amm --out sessions/_discovery/programs.json",
               file=sys.stderr)
         return 1
 

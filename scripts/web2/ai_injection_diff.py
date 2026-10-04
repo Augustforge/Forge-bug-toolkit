@@ -64,7 +64,7 @@ import importlib.util
 # ---------------------------------------------------------------------------
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_SCRIPTS_DIR = os.path.dirname(_HERE)                                       # .../bug-bounty-toolkit/scripts
+_SCRIPTS_DIR = os.path.dirname(_HERE)                                       # .../scripts
 _WALLET_TEST_DIR = os.path.join(_SCRIPTS_DIR, "dapphunt", "wallet_test")
 _AIPROBE_PATH = os.path.join(_SCRIPTS_DIR, "dapphunt", "core", "ai_prompt_injection_probe.py")
 

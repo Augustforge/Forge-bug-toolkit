@@ -18,7 +18,7 @@ Proves:
      env-var grep (_grep_env_vars) collects VITE_*/REACT_APP_*/NEXT_PUBLIC_* literals per host —
      tested via a monkeypatched _fingerprint_host (no live network).
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/hypothesis/clone_diff_selftest.py
+Run: py -3 -X utf8 scripts/dapphunt/hypothesis/clone_diff_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

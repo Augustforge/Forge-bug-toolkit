@@ -39,7 +39,7 @@ argument-hint: "<chain>:<address> | path/to/repo | --continue (from /hunt) | (п
 **Шаги (выполняются вместо auto-routing, пока таргет не выбран):**
 
 1. **🔒 Anonymity precondition (fail-CLOSED, ПЕРЕД любым live-fetch).** Конфиг молча из
-   `bug-bounty-toolkit/opsec_baseline.json` (OPSEC-baseline pre-approved — VPN/incognito/not-main-login,
+   `opsec_baseline.json` (OPSEC-baseline pre-approved — VPN/incognito/not-main-login,
    the operator не дёргается). `anonymity_precondition(config)` обязан вернуть `ok=True`; при провале ни один
    fetch не выполняется → сообщить the operator, что именно не так (VPN/incognito/main-login), и стоп. Это
    ОБЛЕГЧЁННЫЙ гейт (не полный `opsec_preflight` — тут нет login/tx, только чтение публичных страниц).
@@ -50,9 +50,9 @@ argument-hint: "<chain>:<address> | path/to/repo | --continue (from /hunt) | (п
    НИ ОДНОГО fetch). `--patterns` = наши сильные un-dup классы (fingerprint-теги из
    `sessions/_methodology/undup_pattern_library.md`); несовпадение НЕ зануляет EV (floor `PATTERN_BASE`).
    ```bash
-   py -3 -X utf8 bug-bounty-toolkit/scripts/web3/target_discovery_sources.py --live \
+   py -3 -X utf8 scripts/web3/target_discovery_sources.py --live \
      --patterns solana,amm,oracle,bridge \
-     --out bug-bounty-toolkit/sessions/_discovery/programs.json
+     --out sessions/_discovery/programs.json
    ```
    EV = payout × freshness × (1/crowd_heat) × pattern_match. Вывод — отранжированный список с разбивкой
    по факторам + `source` (прозрачность выбора). Пул сохраняется в `--out` для повторного ранжирования
@@ -142,7 +142,7 @@ $100k Toncoin TON Core direct).
 
 ## Методология (shared across /hunt, /deephunt, /dapphunt)
 
-Перед началом deep hunt — прочитай [`bug-bounty-toolkit/methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md). Core discipline:
+Перед началом deep hunt — прочитай [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md). Core discipline:
 
 - **Hunt-Loop spine (run-mode, ALWAYS-ON)** — все фазы ниже гоняются как самокрутящаяся петля: вход
   поднимает `.hunt_active` → 1 гипотеза/итерация (single-pick) → T2+depth-ceiling → refute требует
@@ -167,7 +167,7 @@ $100k Toncoin TON Core direct).
   [[feedback_model_release_reaudit_window]], и обобщение **T5** (patch-diff seeding) на «любое изменение
   во времени». **Автоматика:** entry-хук на входе видит `sessions/{slug}/snapshot.json` → инжектит
   `REVISIT` и форсит дельту (ты сам не забудешь). Протокол: (1) первый хант завершаешь снимком
-  `py -3 -X utf8 bug-bounty-toolkit/scripts/wave_delta.py snapshot {slug} --src <path>`; (2) на ре-визите
+  `py -3 -X utf8 scripts/wave_delta.py snapshot {slug} --src <path>`; (2) на ре-визите
   `... delta {slug} --src <path>` → **REVERSED** (снятый guard / расширенная видимость / +payable) и
   **NEW-без-guard** = H-NN высшего приоритета; **REGRESSION** (добавленный guard) → копай РЯДОМ (там
   боялись); **PERSISTENT** → skip; (3) закрываешь `... delta --save` (снимок = новая база). Классы дельты
@@ -179,7 +179,7 @@ $100k Toncoin TON Core direct).
 - **T3 — Exploit Chaining Discipline** — обязательная Point B sanity check на J8.5 и J9 перед submission
 - **T4 — Two-Agent Verifier Pass (MANDATORY GATE)** — между J5 (PoC success) и J7 (severity calibration) для КАЖДОЙ Med+ находки. Cold-context subagent re-derives finding from raw `file:line` + PoC. Kill / 2-tier-downgrade / silent-precondition flag = НЕ сабмитить. No exceptions, no self-override.
 - **T5 — Patch-Diff Hypothesis Seeding** — на J-1 (NEW phase): когда J-2 нашёл audit reports → extract `git diff audit_commit..HEAD`, каждый surviving hunk = seed hypothesis. Echo Monad ($816K) и Transit Finance ($1.88M) — оба post-audit drift.
-- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies на J0 alongside single-vector hypotheses AND на каждом D-Kill (refuted vector = building block, re-chain). Sweep via [`bug-bounty-toolkit/methodology/hypothesis_taxonomy.md`](../../bug-bounty-toolkit/methodology/hypothesis_taxonomy.md) — pair classes via "Composite Pair Affinities" table. Sibling-class enumeration (taxonomy Cat 17.1) — applies on every found bug.
+- **T6 — Composite Hypothesis Generation (2-3-vector chains)** — applies на J0 alongside single-vector hypotheses AND на каждом D-Kill (refuted vector = building block, re-chain). Sweep via [`methodology/hypothesis_taxonomy.md`](../../methodology/hypothesis_taxonomy.md) — pair classes via "Composite Pair Affinities" table. Sibling-class enumeration (taxonomy Cat 17.1) — applies on every found bug.
 - **T7 — Canonical `hypotheses.md` registry** — create на J0, update live through J9, MANDATORY artifact. Template + protocol в `mythos_techniques.md` Technique 7. Used as second-pass input (Mandate 0.2) — Refuted section feeds T6 composite generation.
 
 ---
@@ -190,7 +190,7 @@ $100k Toncoin TON Core direct).
 
 **⛔ ПЕРВЫЙ ШАГ (до J-2) — completeness-gate обычно уже поднят ВХОДНЫМ хуком** `hunt_entry_gate.py`
 (он на hunt-URL сам создаёт `.hunt_active` + ledger). Если запустился без него — создай маркер:
-`touch bug-bounty-toolkit/sessions/$TARGET/.hunt_active`. Маркер **включает Stop-хук**
+`touch sessions/$TARGET/.hunt_active`. Маркер **включает Stop-хук**
 `hunt_completeness_gate.py` — в АВТОНОМНОМ РЕЖИМЕ (по умолчанию) он держит turn и форсит следующий
 single-pick, не давая завершить хант; проза «6 пунктов [When to ABORT](#when-to-abort-this-hunt)» —
 это чек-лист ПЕРЕД тем как вообще думать о выходе. **ВЫХОД ровно один:** строка
@@ -225,7 +225,7 @@ single-pick, не давая завершить хант; проза «6 пун�
 **Mindset**: "Что аудитор пропустил? Какой scope был OUT? Что было acknowledged без fix?"
 
 **Adversarial reading protocol (MANDATORY для каждого audit report и writeup)**:
-Для каждого audit report / Solodit Critical / rekt.news writeup в этой фазе — apply [`bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md`](bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md) template. Записать notes в `sessions/$TARGET/deep/reading_notes/<source>.md`. Не «просто прочитать», а **обратно** инжинерировать author's mental model: entry point, blind spot, heuristic, sibling-variant question. Без этого audits = passive checkbox; с этим = active learning источник новых hypotheses.
+Для каждого audit report / Solodit Critical / rekt.news writeup в этой фазе — apply [`sessions/_methodology/adversarial_reading.md`](sessions/_methodology/adversarial_reading.md) template. Записать notes в `sessions/$TARGET/deep/reading_notes/<source>.md`. Не «просто прочитать», а **обратно** инжинерировать author's mental model: entry point, blind spot, heuristic, sibling-variant question. Без этого audits = passive checkbox; с этим = active learning источник новых hypotheses.
 
 **🔴 T14-A: ИНВЕРСИЯ карты покрытия (mandatory, если найден хоть один отчёт)** — отчёт читается не
 только ради «что нашли», но и ради **«куда смотрели»**. Дыра карты = место, куда толпа не смотрела.
@@ -236,10 +236,10 @@ single-pick, не давая завершить хант; проза «6 пун�
 артефактов за 4 ханта — soft-nudge проскакивали; теперь decision-gate. Открытый боевой `D-NN` снимает
 гейт — драйвь его раньше, T14 = второй источник МЕСТА перед заключением оси).
 ```bash
-py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/audit_coverage_invert.py \
-    --src bug-bounty-toolkit/sessions/$TARGET/src \
-    --reports bug-bounty-toolkit/sessions/$TARGET/deep/ \
-    --json > bug-bounty-toolkit/sessions/$TARGET/deep/crowd_heat.json
+py -3 -X utf8 scripts/_methodology/audit_coverage_invert.py \
+    --src sessions/$TARGET/src \
+    --reports sessions/$TARGET/deep/ \
+    --json > sessions/$TARGET/deep/crowd_heat.json
 ```
 PDF конвертить заранее: `pdftotext -layout report.pdf report.txt`.
 
@@ -270,7 +270,7 @@ Identifies HIGH-RISK changes (new handlers, removed checks, new CPIs) и MEDIUM-
 - Compare против prior bridge hacks той же conceptual class — **Wormhole 2022, Nomad 2022, Verus 2026** (all cryptographic ≠ semantic verification class).
 - Все 3 entries в `_known_findings.jsonl`: grep IDs `wormhole-2022-signature-bypass`, `nomad-2022-merkle-root-init`, `verus-2026-source-amount-forge` — read summaries.
 - **Правило**: если target — bridge с notary/guardian-attested payload, обязательно run `bash scripts/web3/bridge_tests/source_amount_grep.sh $REPO` ДО formulating hypotheses. Output flags missing amount conservation. Если **0 conservation assertions** found while bridge entry functions present → strong escalate signal per `sessions/_methodology/stop_signals.md`.
-- Reading note worked example: [`scripts/web3/research/_audit_corpus/notes/verus_2026_source_amount.md`](../../bug-bounty-toolkit/scripts/web3/research/_audit_corpus/notes/verus_2026_source_amount.md)
+- Reading note worked example: [`scripts/web3/research/_audit_corpus/notes/verus_2026_source_amount.md`](../../scripts/web3/research/_audit_corpus/notes/verus_2026_source_amount.md)
 
 **Output**: `sessions/$TARGET/deep/audits_analysis.md` + `audit_diff/audit_diff_report.json` + `paid_bounty_history.md` + **`crowd_heat.json`** (T14-A)
 
@@ -282,9 +282,9 @@ Identifies HIGH-RISK changes (new handlers, removed checks, new CPIs) и MEDIUM-
 
 > Буквенная фаза вне числовой шкалы (не ломает J-2→J9). Идёт **после J-2** (аудиты = часть корпуса)
 > и **до J-1** (recon уже трогает код). Полный чеклист:
-> [`independent_model_first.md`](../../bug-bounty-toolkit/sessions/_methodology/independent_model_first.md).
+> [`independent_model_first.md`](../../sessions/_methodology/independent_model_first.md).
 > Артефакт: `sessions/$TARGET/system_model.md` из
-> [`system_model_template.md`](../../bug-bounty-toolkit/sessions/_methodology/system_model_template.md).
+> [`system_model_template.md`](../../sessions/_methodology/system_model_template.md).
 
 **Цель**: получить **объективный источник МЕСТА** — расхождение между независимой моделью системы и её
 реализацией. Не «странная строчка», а **инвариант, который не enforced**. Это ответ на un-dup: толпа
@@ -308,7 +308,7 @@ book/QBFT). Нет корпуса → суррогат: (1) эталон сем�
 - 🔴 **Экономический `I-NN`** идёт в дивергенции, только если названа конкретная **permissionless-
   последовательность**, которая его ломает. Иначе `Long Tail` — «кодом не выражается» = бесплатный `ABSENT`.
 - **T10-B (форк/член семьи):** не строить с нуля — взять эталон из
-  [`invariant_library.md`](../../bug-bounty-toolkit/methodology/invariant_library.md) и **продифать
+  [`invariant_library.md`](../../methodology/invariant_library.md) и **продифать
   guards**. Что есть у родителя и отсутствует здесь = готовый `ABSENT` почти бесплатно.
 
 **Такт 3 — открыть код, проставить enforcement** (5 статусов: `ENFORCED` · `ENFORCED-PARTIAL` ·
@@ -339,7 +339,7 @@ book/QBFT). Нет корпуса → суррогат: (1) эталон сем�
 
 ### J-1: Deep Reconnaissance (30-60 мин)
 
-**Pre-flight: T5 Patch-Diff Hypothesis Seeding** (применяй если J-2 нашёл хоть один audit report ИЛИ target имеет commits ≤90 дней) — следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding). Steps:
+**Pre-flight: T5 Patch-Diff Hypothesis Seeding** (применяй если J-2 нашёл хоть один audit report ИЛИ target имеет commits ≤90 дней) — следуй [`methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding`](../../methodology/mythos_techniques.md#technique-5--patch-diff-hypothesis-seeding). Steps:
 1. Установить `audit_commit` = git commit hash на дату последнего audit (из report cover page или `git log --before=<audit-date>`)
 2. `git diff $audit_commit..HEAD -- '*.sol' '*.fc' '*.rs' '*.move' > sessions/$TARGET/deep/post_audit_drift.diff`
 3. Drop hunks: test/, mock/, script/, deploy/, pure comments/whitespace
@@ -358,10 +358,10 @@ book/QBFT). Нет корпуса → суррогат: (1) эталон сем�
 смотрел **автор** (аудит-карта из J-2 показывала, где не смотрел аудитор). Работает и на ПЕРВОМ визите,
 в отличие от `wave_delta.py`.
 ```bash
-py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/commit_archaeology.py \
-    bug-bounty-toolkit/sessions/$TARGET/src \
+py -3 -X utf8 scripts/_methodology/commit_archaeology.py \
+    sessions/$TARGET/src \
     --audit-date $AUDIT_DATE --ext .sol,.rs \
-    --json > bug-bounty-toolkit/sessions/$TARGET/deep/commit_archaeology.json
+    --json > sessions/$TARGET/deep/commit_archaeology.json
 ```
 - **Клонировать надо с ПОЛНОЙ историей.** Наш дефолт `--depth 1` убивает сигнал: проверка сессионных
   репо (2026-07-27) — 5 из 6 имели ровно один коммит. Планируешь T14-B → клонируй без `--depth`.
@@ -384,7 +384,7 @@ python3 scripts/web3/hotlist/signal_aggregator.py --target $TARGET
 **MANDATORY: secret-scan клонированного репо (+submodules)** — НЕ опционально, это самый дешёвый Critical. `/hunt` сканит org/domain, но `/deephunt` заходит с РЕПО, и leaked-key класс (Taiko Raiko `enclave-key.pem` $1.7M, [[project_taiko_sgx_hack]] Cat 14.10) живёт В репо/сабмодулях/CI, не в логике контракта. Прогнать ПЕРЕД чтением кода:
 ```bash
 # PRIMARY (self-contained, кросс-движковый; ловит захардкоженный ключ-ЛИТЕРАЛ 0x<64hex>/base58 рядом с signer/pk — что gitleaks/grep мимо, Swan Cat 4.10; decode-слой; offline-derive + keypair→role correlation → severity):
-py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/secret_exposure_scanner.py --target bug-bounty-toolkit/sessions/$TARGET/src --session-dir bug-bounty-toolkit/sessions/$TARGET --git-history   # → exposure_scan.md + вписывает EXPOSURE-SCAN ledger-строку (снимает gate active_exposure_scan_skipped); каждый secret/key → H-NN
+py -3 -X utf8 scripts/_methodology/secret_exposure_scanner.py --target sessions/$TARGET/src --session-dir sessions/$TARGET --git-history   # → exposure_scan.md + вписывает EXPOSURE-SCAN ledger-строку (снимает gate active_exposure_scan_skipped); каждый secret/key → H-NN
 # supplements (Docker bbt):
 git -C sessions/$TARGET/src submodule update --init --recursive   # prover/SGX/keys часто submodule
 gitleaks detect --source sessions/$TARGET/src --no-git -r sessions/$TARGET/deep/gitleaks.json   # Docker bbt
@@ -419,7 +419,7 @@ git -C sessions/$TARGET/src log --all --full-history -- '**/*.pem' '**/*key*'   
 **Цель**: 5-10 testable hypotheses ранжированных по likelihood.
 
 **Действия**:
-1. Read top-3 critical contracts manually. **Apply T1 rubric** из [`methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric): score every file 1-5 (score 5 = parses attacker input / crypto / deserialization / auth gate), пиши output в `sessions/$TARGET/deep/attack_surface_rubric.md`. После J-2 audit mining — re-score (known findings = +1, clean audit history = -1). Top-3 reads = score-5 files first. Не sкипай — это нельзя автоматизировать.
+1. Read top-3 critical contracts manually. **Apply T1 rubric** из [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md#technique-1--file-prioritization-attack-surface-rubric): score every file 1-5 (score 5 = parses attacker input / crypto / deserialization / auth gate), пиши output в `sessions/$TARGET/deep/attack_surface_rubric.md`. После J-2 audit mining — re-score (known findings = +1, clean audit history = -1). Top-3 reads = score-5 files first. Не sкипай — это нельзя автоматизировать.
 2. Параллельно run:
    ```bash
    python3 scripts/web3/hypothesis/asymmetry_scanner.py --target $TARGET --output sessions/$TARGET/deep/hypothesis/
@@ -459,7 +459,7 @@ git -C sessions/$TARGET/src log --all --full-history -- '**/*.pem' '**/*key*'   
 
 6. **Threat-model layer** — apply reusable threat-models под этот target:
 
-   **6a. Auto-classifiers FIRST (mandatory)** — single decision page: [`bug-bounty-toolkit/scripts/web3/_target_routing.md`](bug-bounty-toolkit/scripts/web3/_target_routing.md). Run unconditionally чтобы auto-tag target → apply.py picks tags автоматически. Без этого manual `_tags.txt` authoring требуется.
+   **6a. Auto-classifiers FIRST (mandatory)** — single decision page: [`scripts/web3/_target_routing.md`](scripts/web3/_target_routing.md). Run unconditionally чтобы auto-tag target → apply.py picks tags автоматически. Без этого manual `_tags.txt` authoring требуется.
    ```bash
    # Bridge / attested-payload class (Verus 2026 / Wormhole 2022 / Nomad 2022 class)
    py -3 -X utf8 scripts/web3/hypothesis/bridge_detector.py --target sessions/$TARGET/deep
@@ -471,9 +471,9 @@ git -C sessions/$TARGET/src log --all --full-history -- '**/*.pem' '**/*key*'   
 
    **6b. Manual tags** — Claude дополняет `_tags.txt` остальными tags на основе manual reading (после auto-classifier выполнения).
 
-   **6b-profile. Protocol-type threat profile (read BEFORE apply.py)** — открой [`scripts/web3/threat_models/_PROTOCOL_PROFILES.md`](bug-bounty-toolkit/scripts/web3/threat_models/_PROTOCOL_PROFILES.md) под matched `protocol_class` (тот же tag, что apply.py читает из `_tags.txt`). Для matched type: каждый **critical invariant** → T2 STATE A гипотеза "могу ли я это сломать?"; каждый **read-first** → score-bump в T1 rubric; пройди applicable **temporal phases** + **composability layers**. Это WHY-слой над matcher'ом (apply.py = WHICH models fire). `_`-файл → apply.py его не грузит.
+   **6b-profile. Protocol-type threat profile (read BEFORE apply.py)** — открой [`scripts/web3/threat_models/_PROTOCOL_PROFILES.md`](scripts/web3/threat_models/_PROTOCOL_PROFILES.md) под matched `protocol_class` (тот же tag, что apply.py читает из `_tags.txt`). Для matched type: каждый **critical invariant** → T2 STATE A гипотеза "могу ли я это сломать?"; каждый **read-first** → score-bump в T1 rubric; пройди applicable **temporal phases** + **composability layers**. Это WHY-слой над matcher'ом (apply.py = WHICH models fire). `_`-файл → apply.py его не грузит.
 
-   **6b-trees. Attack-tree + playbook lookup** — после профиля: (1) walk the matching tree in [`bug-bounty-toolkit/attack-trees/`](bug-bounty-toolkit/attack-trees/_INDEX.md) (`_INDEX.md` maps tree→Cat) top-down — каждый leaf, который не опровергается с ходу = H-{NN}; (2) если target IS/forks известный протокол — открой соответствующий [`bug-bounty-toolkit/protocol-playbooks/`](bug-bounty-toolkit/protocol-playbooks/_INDEX.md) (balancer/makerdao/curve/morpho/univ4/aave-v3/gmx/eigenlayer) для concrete addresses + known pitfalls (экономит cold-read ramp). Flow: playbook (where) → tree (branches) → taxonomy Cat (bug kind). Покрывает новые Cat 19/20/21 (options/insurance/perp) + 16.10.
+   **6b-trees. Attack-tree + playbook lookup** — после профиля: (1) walk the matching tree in [`attack-trees/`](attack-trees/_INDEX.md) (`_INDEX.md` maps tree→Cat) top-down — каждый leaf, который не опровергается с ходу = H-{NN}; (2) если target IS/forks известный протокол — открой соответствующий [`protocol-playbooks/`](protocol-playbooks/_INDEX.md) (balancer/makerdao/curve/morpho/univ4/aave-v3/gmx/eigenlayer) для concrete addresses + known pitfalls (экономит cold-read ramp). Flow: playbook (where) → tree (branches) → taxonomy Cat (bug kind). Покрывает новые Cat 19/20/21 (options/insurance/perp) + 16.10.
 
    **6c. Apply.py engine**:
    ```bash
@@ -484,7 +484,7 @@ git -C sessions/$TARGET/src log --all --full-history -- '**/*.pem' '**/*key*'   
 
    **6d. Class-specific operational detectors** (run conditionally на основе auto-classifier verdict):
    - Если `bridge` tagged → `bash scripts/web3/bridge_tests/source_amount_grep.sh $SOURCE_PATH sessions/$TARGET/deep` (Verus 2026 class detector — flags missing source-amount conservation) + `bash scripts/web3/bridge_tests/check_bridges.sh $SOURCE_PATH sessions/$TARGET/deep` (LayerZero DVN / framework config).
-   - Read output `source_amount_findings.md` — если 🚩 RED FLAG (entry functions present, 0 conservation assertions) → этот класс попадает в J0 escalate path per [`stop_signals.md`](bug-bounty-toolkit/sessions/_methodology/stop_signals.md) bridge-specific signal.
+   - Read output `source_amount_findings.md` — если 🚩 RED FLAG (entry functions present, 0 conservation assertions) → этот класс попадает в J0 escalate path per [`stop_signals.md`](sessions/_methodology/stop_signals.md) bridge-specific signal.
    - Future classes: add similar conditional invocations.
 
 7. **Triage** — apply `prompts/hypothesis_triage.md`. Каждой hypothesis tag: `REFUTED` / `PLAUSIBLE` / `INTERESTING` / `NEEDS_DEEP`. Только последние три идут дальше. REFUTED сохрани в `sessions/$TARGET/deep/refuted_hypotheses.md`.
@@ -504,18 +504,18 @@ git -C sessions/$TARGET/src log --all --full-history -- '**/*.pem' '**/*key*'   
 **Mindset**: "Если этот протокол has bug, где я бы поставил $1000?"
 
 **Pre-flight quality check (MANDATORY перед closing J0)**:
-Для **каждой** hypothesis в candidate list — apply [`bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md`](bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md) 5-вопросовый checklist:
+Для **каждой** hypothesis в candidate list — apply [`sessions/_methodology/hypothesis_quality.md`](sessions/_methodology/hypothesis_quality.md) 5-вопросовый checklist:
 - Concrete prediction (file:line + pattern)
 - Falsifier (что опровергает)
 - Severity ceiling (quantified)
 - Cost vs payout estimate (hours)
 - **Refuted-by-read (5 min, выполни сейчас)** — самый ROI шаг
 
-Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Только GO+NEEDS_DEEP идут в J1. Saved verdicts в `sessions/$TARGET/deep/hypothesis_preflight.md`. Refuted записать в `sessions/$TARGET/deep/refuted.md` (one-liner each) — это feed для [calibration_log](bug-bounty-toolkit/sessions/_methodology/calibration_log.md).
+Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Только GO+NEEDS_DEEP идут в J1. Saved verdicts в `sessions/$TARGET/deep/hypothesis_preflight.md`. Refuted записать в `sessions/$TARGET/deep/refuted.md` (one-liner each) — это feed для [calibration_log](sessions/_methodology/calibration_log.md).
 
 **Output**: `sessions/$TARGET/deep/hypothesis_candidates.md` (post-preflight, GO+NEEDS_DEEP only) — 5-10 ranked hypotheses.
 
-**Phase gate (J0 → J0.5/J1)** — **MANDATORY stop signals check** ([stop_signals.md](bug-bounty-toolkit/sessions/_methodology/stop_signals.md)): если 2+ stop signals fire'ят (e.g., Tier-1 audit ≤6мес назад без post-audit drift + project tests cover scenario) — **abort hunt** на этом target. Если 2+ escalate signals fire'ят — proceed с явным acknowledge severity ceiling.
+**Phase gate (J0 → J0.5/J1)** — **MANDATORY stop signals check** ([stop_signals.md](sessions/_methodology/stop_signals.md)): если 2+ stop signals fire'ят (e.g., Tier-1 audit ≤6мес назад без post-audit drift + project tests cover scenario) — **abort hunt** на этом target. Если 2+ escalate signals fire'ят — proceed с явным acknowledge severity ceiling.
 
 ---
 
@@ -535,7 +535,7 @@ Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Тол�
    звать — Workflow физически недоступен (тогда fallback на `Agent`-веер), НЕ «нет разрешения».**
    **ДВЕ формы, называй их РАЗНО в чате (the operator должен видеть, какая запущена):**
    `MODEL: N/A` (нет `I-NN`) → **CLASSIC Scout Fan-Out**:
-   `Workflow({scriptPath:'bug-bounty-toolkit/scripts/_methodology/scout_fanout.workflow.js',`
+   `Workflow({scriptPath:'scripts/_methodology/scout_fanout.workflow.js',`
    `args:{slug, src, partitions:[{id,title,scope,invariant}]}})` — ≤7 партиций.
    Модель есть → **HYBRID Scout Fan-Out** (пункт 0b, НЕ этот скрипт).
    Выигрыш ОДИН и он не в контексте: `schema` валидируется на уровне tool-call, поэтому лид без
@@ -553,7 +553,7 @@ Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Тол�
 0b. 🔴 **МОДЕЛЬ ЕСТЬ (`I-NN` в `system_model.md`) → ОБЯЗАТЕЛЬНО «HYBRID Scout Fan-Out»
    (`divergence_fanout.workflow.js`), НЕ CLASSIC `scout_fanout`** (гибрид T10 × open-kritt reduce=synthesis).
    В чате произноси именно **«HYBRID Scout Fan-Out»**, чтобы было видно, что запущена reduce-версия:
-   `Workflow({scriptPath:'bug-bounty-toolkit/scripts/_methodology/divergence_fanout.workflow.js',`
+   `Workflow({scriptPath:'scripts/_methodology/divergence_fanout.workflow.js',`
    `args:{slug, src, invariants:[{id,check,component,pred,partition_scope}]}})` — ≤7 `I-NN` на волну.
    Он делает ДВЕ стадии за раз: (1) enforce-веер по `I-NN` (sonnet) = пункт 0 выше, но со строгой
    схемой статуса; (2) **reduce=synthesis** (opus, loop-until-dry) над ВСЕМ батчем — механизированный
@@ -564,7 +564,7 @@ Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Тол�
    слоёв руками** (J2+), НЕ веером (иначе breadth-конфляция = TermMax). Пустой `cross_thread_threads`
    = смени ОСЬ инвариантов (WAVE-2 в `J-M`), НЕ выход. `scout_fanout` (линзы/подсистемы) остаётся для
    `MODEL: N/A` и добивки классов вне модели.
-1. Spawn **12 параллельных субагентов** (по одному на `scripts/web3/prompts/fanout/specialty_01..12_*.md`). Каждый: запускает свой mapped scanner (см. [`fanout/_INDEX.md`](../../bug-bounty-toolkit/scripts/web3/prompts/fanout/_INDEX.md) таблицу) → читает flagged sites с mental-tool протоколом (B) → пишет `H-{NN}` в `sessions/$TARGET/deep/hypothesis_candidates.md` (T2 STATE A формат, marker-trail обязателен).
+1. Spawn **12 параллельных субагентов** (по одному на `scripts/web3/prompts/fanout/specialty_01..12_*.md`). Каждый: запускает свой mapped scanner (см. [`fanout/_INDEX.md`](../../scripts/web3/prompts/fanout/_INDEX.md) таблицу) → читает flagged sites с mental-tool протоколом (B) → пишет `H-{NN}` в `sessions/$TARGET/deep/hypothesis_candidates.md` (T2 STATE A формат, marker-trail обязателен).
 2. **3 gap-hunter линзы** (taxonomy "Gap-Hunter Lenses" — numerical/trust/flow) проходят ПОСЛЕ 12 single-линз: берут пары их находок на seam → composite-кандидаты (это T6 cross-thread synthesis).
 3. **Demarcation**: specialty = generation fan-out (НЕ J3 specialized hunters — те deep-dive на ПОДТВЕРЖД�ённом направлении; НЕ actor-lens). One-lens находки только; всё, что требует второй линзы → отдать gap-hunter'ам.
 4. **Dedup**: слить candidates по `(file, function, Cat)`; прогнать через тот же J0 preflight verdict (GO/REFUTED/TOO_VAGUE/LOW_ROI/NEEDS_DEEP).
@@ -601,16 +601,16 @@ Verdict per hypothesis: GO / REFUTED / TOO_VAGUE / LOW_ROI / NEEDS_DEEP. Тол�
    - "depositedTokens MUST >= stakedTokens + delegatedOut"
    - "sum(user_balances) MUST equal totalSupply"
 2. Mine explicit invariants from comments (`comment_miner.py` output из J0)
-3. **Synthesize invariants systematically** — пройди [`checklists/hypothesis/invariant_synthesis.md`](../../bug-bounty-toolkit/scripts/web3/checklists/hypothesis/invariant_synthesis.md) (E — pashov x-ray Step 2g): 7 сканов (conservation / guard-lift+all-write-sites / ratio / state-machine / temporal / cross-contract / economic), формализм G/I/X/E + On-chain=Yes/No. **Каждая On-chain=No строка (свойство ДОЛЖНО держаться, но код не энфорсит его на всех write-site) = готовая T2 STATE A гипотеза — это и есть баг-кандидат.** Слой синтеза НАД `comment_miner.py`/`state_machine_analyzer.py` (не дублируй их).
+3. **Synthesize invariants systematically** — пройди [`checklists/hypothesis/invariant_synthesis.md`](../../scripts/web3/checklists/hypothesis/invariant_synthesis.md) (E — pashov x-ray Step 2g): 7 сканов (conservation / guard-lift+all-write-sites / ratio / state-machine / temporal / cross-contract / economic), формализм G/I/X/E + On-chain=Yes/No. **Каждая On-chain=No строка (свойство ДОЛЖНО держаться, но код не энфорсит его на всех write-site) = готовая T2 STATE A гипотеза — это и есть баг-кандидат.** Слой синтеза НАД `comment_miner.py`/`state_machine_analyzer.py` (не дублируй их).
 4. Mine from audit reports (J-2): какие invariants auditor проверял?
-5. **DeFi primitives quirks** — если protocol use Stableswap/Concentrated liq/veToken — open [`checklists/hypothesis/defi_primitives_quirks.md`](../../bug-bounty-toolkit/scripts/web3/checklists/hypothesis/defi_primitives_quirks.md) для class-specific invariants
+5. **DeFi primitives quirks** — если protocol use Stableswap/Concentrated liq/veToken — open [`checklists/hypothesis/defi_primitives_quirks.md`](../../scripts/web3/checklists/hypothesis/defi_primitives_quirks.md) для class-specific invariants
 
 **Mindset**: "Какое утверждение разработчик считает self-evident? Что произойдёт если оно false?"
 
 **Output**: `system_model.md` с проставленным enforcement по всем `I-NN` + заведёнными `D-NN`
 (+ `sessions/$TARGET/deep/invariants.md` — MUST-hold statements, найденные из кода сверх модели).
 
-**Phase gate (J1 → J2)** — check [stop_signals.md](bug-bounty-toolkit/sessions/_methodology/stop_signals.md): если за J1 hour invariants все trivially defended developer'ом (defensive code present везде) — это stop signal "developer knew this class". Re-evaluate hypothesis viability перед J2 (cost in hours).
+**Phase gate (J1 → J2)** — check [stop_signals.md](sessions/_methodology/stop_signals.md): если за J1 hour invariants все trivially defended developer'ом (defensive code present везде) — это stop signal "developer knew this class". Re-evaluate hypothesis viability перед J2 (cost in hours).
 
 ---
 
@@ -634,8 +634,8 @@ H-13) — про последовательность/переход состо�
 **Триггер — детектор, не вкус (харнесс дорог — часы).** Решай J2 не на глаз, а запусти сразу после
 `J-M`:
 ```bash
-py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/t11_applicable.py \
-  bug-bounty-toolkit/sessions/$TARGET --model bug-bounty-toolkit/sessions/$TARGET/system_model.md
+py -3 -X utf8 scripts/_methodology/t11_applicable.py \
+  sessions/$TARGET --model sessions/$TARGET/system_model.md
 ```
 Проверяет три условия (BUILD компилируется → движок · STATEFUL invariant-heavy · MOVEMENT ≥1
 order-dependent `I-NN`). **APPLICABLE** (exit 0) → выполняй J2 ниже. **MAYBE** (exit 2) → в модели нет
@@ -686,7 +686,7 @@ T11) → **пропусти J2**, не жги часы. Детектор пот�
 
 **Output**: `sessions/$TARGET/deep/invariant_results.json` + запись в `system_model.md ## Divergences`
 
-**Phase gate (J2 → J3)** — apply [stop_signals.md](bug-bounty-toolkit/sessions/_methodology/stop_signals.md): если J2 не сломал ни одного invariant + actual_cost >2x pre-flight estimate → abort hypothesis OR escalate с justification. Sunk cost — не аргумент.
+**Phase gate (J2 → J3)** — apply [stop_signals.md](sessions/_methodology/stop_signals.md): если J2 не сломал ни одного invariant + actual_cost >2x pre-flight estimate → abort hypothesis OR escalate с justification. Sunk cost — не аргумент.
 
 ---
 
@@ -783,7 +783,7 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 
 **⚠ Platform-specific PoC requirement (определи ДО выбора типа PoC):** требования к PoC зависят от платформы сабмита — см. `submission_checklist.yaml` платформо-секцию (`platform_detector.py` для детекта). **Если target submit'ится через HackenProof SC-программу: fork-PoC НЕДОСТАТОЧЕН** (их триаж авто-Invalid'ит forge/Hardhat fork как mocked unit test) → нужен testnet/mainnet **txhash** реального on-chain исполнения. Планируй on-chain PoC ЗАРАНЕЕ, не упрись на сабмите (small/self-directed сумма ок — 1-unit self-transfer responsible). Видео — только если конкретная программа требует. На **Immunefi/Cantina** fork-PoC обычно принимается — там это правило НЕ применяется. Fork-PoC ниже = всегда валидный internal verification-шаг (T4), даже когда сабмит требует on-chain.
 
-**T2 protocol reminder**: каждая hypothesis должна пройти state B → C → D из [`methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-2--hypothesis--isolated-container--poc-strict-loop). Не пивотиться на новую hypothesis mid-PoC — пиши в `_inbox.md`, finish current PoC attempt сначала. STATE D обязательно: PoC success / provable Kill / time-bounded Park.
+**T2 protocol reminder**: каждая hypothesis должна пройти state B → C → D из [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md#technique-2--hypothesis--isolated-container--poc-strict-loop). Не пивотиться на новую hypothesis mid-PoC — пиши в `_inbox.md`, finish current PoC attempt сначала. STATE D обязательно: PoC success / provable Kill / time-bounded Park.
 
 **Действия**:
 1. Choose recent mainnet block:
@@ -822,7 +822,7 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 систематически убивает cross-thread/depth-ceiling находки, где каждая улика по отдельности безобидна
 (Orchard прожил 4 года именно поэтому).
 
-**Протокол** (следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass)):
+**Протокол** (следуй [`methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass`](../../methodology/mythos_techniques.md#technique-4--two-agent-verifier-pass)):
 
 1. Snapshot finding artifacts в `sessions/$TARGET/deep/hypothesis/{H-NN}/finding_snapshot.md` (one-liner, PoC, file:line, claimed severity)
 2. Spawn research subagent с COLD context. Hand ему ТОЛЬКО: target repo path, file:line, PoC script. НЕ давай: hypothesis text, severity claim, narrative.
@@ -903,7 +903,7 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 1. `python3 scripts/web3/hypothesis/variant_scanner.py --cross-protocol`
 2. Find 5+ other live protocols with same pattern
 3. **Composability angle**: если `composability_breaks.json` (из J3) показал dep+edge_state combination — find other protocols using same dep (e.g., 50 protocols use Pyth). Same edge state breaks them too?
-4. **Cross-chain amplifier (MANDATORY)**: открой `bug-bounty-toolkit/sessions/_methodology/cross_chain_hypothesis_amplifier.md`. EVM→Solana analog mapping table. Для каждого confirmed finding (любой severity) — найди соответствующий Solana класс. Bug на Solana → ищи EVM analog. Это удваивает ROI per insight.
+4. **Cross-chain amplifier (MANDATORY)**: открой `sessions/_methodology/cross_chain_hypothesis_amplifier.md`. EVM→Solana analog mapping table. Для каждого confirmed finding (любой severity) — найди соответствующий Solana класс. Bug на Solana → ищи EVM analog. Это удваивает ROI per insight.
 5. Spawn parallel mini-hunts:
    ```bash
    for protocol in $TARGETS; do
@@ -920,7 +920,7 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 
 ### J8.5: Multi-Step Exploit Chain Build (1-2ч)
 
-**T3 protocol**: формализует [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../bug-bounty-toolkit/methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) Point A (attacker capability mapping) + Point B (pre-submission checklist). Реальные precedents: Echo Monad ($816K, admin key + unconstrained mint + fake collateral) и Transit Finance 2026 (ghost contract chain).
+**T3 protocol**: формализует [`methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking`](../../methodology/mythos_techniques.md#technique-3--exploit-chaining-discipline-severity-stacking) Point A (attacker capability mapping) + Point B (pre-submission checklist). Реальные precedents: Echo Monad ($816K, admin key + unconstrained mint + fake collateral) и Transit Finance 2026 (ghost contract chain).
 
 **Триггер**: только если single finding = Medium и хочется push в High/Critical.
 
@@ -945,7 +945,7 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 **Цель**: production-ready report готовый к submission.
 
 **Действия**:
-0. **Pre-flight через [`submission_checklist.yaml`](bug-bounty-toolkit/sessions/_methodology/submission_checklist.yaml)** (MANDATORY перед всем остальным в J9):
+0. **Pre-flight через [`submission_checklist.yaml`](sessions/_methodology/submission_checklist.yaml)** (MANDATORY перед всем остальным в J9):
    - Run каждую секцию по draft finding: `auto_invalid` (instant reject) / `severity_cap` (downgrade rules) / `quality_required` (PoC, fix recommendation, dedup angle) / `project_tests` (intended behavior check)
    - Если HIT в `auto_invalid` → НЕ сабмить, переформулируй ИЛИ drop finding (этот PoC ничего не принесёт, только reputation damage)
    - Если HIT в `severity_cap` → понизь severity сам в draft (judge всё равно понизит, лучше быть честным upfront)
@@ -981,9 +981,9 @@ Ethereal). Без named sequence — это `## Long Tail` в модели, НЕ
 **Output**: `sessions/$TARGET/deep/report.md` ready for submission.
 
 **Calibration log update (MANDATORY перед submit)**:
-Для каждой hypothesis которая дошла до J9 (TRUE confirmed OR FALSE refuted during deepdive) — append entry в [`bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl`](bug-bounty-toolkit/sessions/_methodology/calibration_log.jsonl). Поля: target, class, hypothesis_text, preflight_verdict (from J0), preflight_severity_ceiling, preflight_cost_estimate_hours, actual_cost_hours, outcome (TRUE_CONFIRMED / FALSE_INTENDED_BEHAVIOR / etc), notes. Format и outcome values: см. [calibration_log.md](bug-bounty-toolkit/sessions/_methodology/calibration_log.md).
+Для каждой hypothesis которая дошла до J9 (TRUE confirmed OR FALSE refuted during deepdive) — append entry в [`sessions/_methodology/calibration_log.jsonl`](sessions/_methodology/calibration_log.jsonl). Поля: target, class, hypothesis_text, preflight_verdict (from J0), preflight_severity_ceiling, preflight_cost_estimate_hours, actual_cost_hours, outcome (TRUE_CONFIRMED / FALSE_INTENDED_BEHAVIOR / etc), notes. Format и outcome values: см. [calibration_log.md](sessions/_methodology/calibration_log.md).
 
-Это **обязательно**. Без entry — нет honest tracking accuracy. Через 30+ записей analysis surfaces weak classes → directs к [learning_paths](bug-bounty-toolkit/sessions/_methodology/learning_paths/_INDEX.md).
+Это **обязательно**. Без entry — нет honest tracking accuracy. Через 30+ записей analysis surfaces weak classes → directs к [learning_paths](sessions/_methodology/learning_paths/_INDEX.md).
 
 ---
 
@@ -1224,7 +1224,7 @@ pivot ЗАПРЕЩЁН, пока ВСЕ пункты ниже не отмече�
    ПРОЧИТАН построчно, а не только классифицирован? Список непрочитанных = ПУСТ? Каждый непрочитанный =
    обязательная hypothesis, не "скип".
    🔴 **Гнать это как loop-until-dry, а не «top-N»:**
-   `Workflow({scriptPath:'bug-bounty-toolkit/scripts/_methodology/gapmap.workflow.js',`
+   `Workflow({scriptPath:'scripts/_methodology/gapmap.workflow.js',`
    `args:{slug, src, files:[<непрочитанные score-4/5>]}})` — дренирует список до пустоты пачками
    по 5, каждый файл читается ПОСТРОЧНО, возвращает либо лид со `schema`, либо честное «пусто +
    что именно проверено». `not_read_fully` и `dropped_by_cap` в ответе — это ВСЁ ЕЩЁ непрочитанное:
@@ -1255,7 +1255,7 @@ pivot ЗАПРЕЩЁН, пока ВСЕ пункты ниже не отмече�
    park не существует; единственный выход петли = подтверждённый High/Critical баг, Medium/Low — банк по
    ходу). Проза-мандат тут недостаточен
    (урок brutecat выше) — поэтому Cold Restart стоит ВНУТРИ этого gate, не снаружи.
-   Протокол: [`methodology/mythos_techniques.md`](../../bug-bounty-toolkit/methodology/mythos_techniques.md) Technique 9.
+   Протокол: [`methodology/mythos_techniques.md`](../../methodology/mythos_techniques.md) Technique 9.
    **Manual override:** the operator ЯВНО пишет «сделай рестарт / холодный рестарт» → запускаю немедленно, даже до gate.
 
 **Единственный выход петли — подтверждённый High/Critical баг (success); Medium/Low цепляем И ПОДАЁМ
@@ -1321,20 +1321,20 @@ loop-guard: phase-gate'ы (stop_signals) решают «эта ГИПОТЕЗА 
 - `scripts/web3/HIGH_VALUE_PATTERNS.md` — Critical patterns library (35+ patterns)
 - `scripts/web3/COGNITIVE_FRAMEWORK.md` — mindset per phase
 - `scripts/web3/DEFI_PRIMITIVES.md` — class-specific bugs (Stableswap/CL/veToken/etc)
-- `bug-bounty-toolkit/sessions/_methodology/successful_patterns.md` — extracted patterns from confirmed hunts (Alchemix/DeXe/Mezo)
-- `bug-bounty-toolkit/sessions/_methodology/cross_chain_hypothesis_amplifier.md` — EVM↔Solana class mapping (REQUIRED для J8)
-- `bug-bounty-toolkit/sessions/_methodology/hypothesis_quality.md` — pre-flight 5Q checklist (REQUIRED Phase 2.5 + J0)
-- `bug-bounty-toolkit/sessions/_methodology/stop_signals.md` — abort/escalate/external-review decision tree (REQUIRED phase gates)
-- `bug-bounty-toolkit/sessions/_methodology/calibration_log.md` — personal accuracy tracking protocol (REQUIRED J9 update)
-- `bug-bounty-toolkit/sessions/_methodology/adversarial_reading.md` — Solodit/audit/writeup adversarial reading template (REQUIRED J-2)
-- 🔴 `bug-bounty-toolkit/sessions/_methodology/independent_model_first.md` — T10 чеклист (REQUIRED **J-M**)
-- 🔴 `bug-bounty-toolkit/sessions/_methodology/system_model_template.md` — шаблон T13 `system_model.md` (REQUIRED J-M)
-- 🔴 `bug-bounty-toolkit/sessions/_methodology/attention_gap_mapping.md` — T14 A/B чеклист (REQUIRED J-2 и J-1)
-- 🔴 `bug-bounty-toolkit/methodology/invariant_library.md` — инварианты примитивов + `fingerprint:` канона (читать при опознании примитива; пополнять на выходе)
-- 🔴 `bug-bounty-toolkit/methodology/depth_engine_plan.md` — план divergence-first движка (T10-T14), источник всех правил выше
-- `bug-bounty-toolkit/sessions/_methodology/blind_spots.md` — классы, которые мы ни разу не находили (писать при молчащем генераторе)
-- `bug-bounty-toolkit/sessions/_methodology/learning_paths/_INDEX.md` — primitive learning paths (consult если calibration shows weak class)
-- For Solana-specific reference (failure modes log etc.) — `bug-bounty-toolkit/scripts/sol/README.md`
+- `sessions/_methodology/successful_patterns.md` — extracted patterns from confirmed hunts (Alchemix/DeXe/Mezo)
+- `sessions/_methodology/cross_chain_hypothesis_amplifier.md` — EVM↔Solana class mapping (REQUIRED для J8)
+- `sessions/_methodology/hypothesis_quality.md` — pre-flight 5Q checklist (REQUIRED Phase 2.5 + J0)
+- `sessions/_methodology/stop_signals.md` — abort/escalate/external-review decision tree (REQUIRED phase gates)
+- `sessions/_methodology/calibration_log.md` — personal accuracy tracking protocol (REQUIRED J9 update)
+- `sessions/_methodology/adversarial_reading.md` — Solodit/audit/writeup adversarial reading template (REQUIRED J-2)
+- 🔴 `sessions/_methodology/independent_model_first.md` — T10 чеклист (REQUIRED **J-M**)
+- 🔴 `sessions/_methodology/system_model_template.md` — шаблон T13 `system_model.md` (REQUIRED J-M)
+- 🔴 `sessions/_methodology/attention_gap_mapping.md` — T14 A/B чеклист (REQUIRED J-2 и J-1)
+- 🔴 `methodology/invariant_library.md` — инварианты примитивов + `fingerprint:` канона (читать при опознании примитива; пополнять на выходе)
+- 🔴 `methodology/depth_engine_plan.md` — план divergence-first движка (T10-T14), источник всех правил выше
+- `sessions/_methodology/blind_spots.md` — классы, которые мы ни разу не находили (писать при молчащем генераторе)
+- `sessions/_methodology/learning_paths/_INDEX.md` — primitive learning paths (consult если calibration shows weak class)
+- For Solana-specific reference (failure modes log etc.) — `scripts/sol/README.md`
 
 ---
 

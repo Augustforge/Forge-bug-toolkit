@@ -120,7 +120,7 @@ def _is_adhoc_secret_grep(tool, data):
 
 EXPOSURE_NUDGE = (
     "🔎 EXPOSURE-SCAN — you are searching for secrets with an ad-hoc grep. Use the SYSTEMIC producer instead: "
-    "`py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/secret_exposure_scanner.py --target "
+    "`py -3 -X utf8 scripts/_methodology/secret_exposure_scanner.py --target "
     "<clone / bundle-dir> --session-dir <sessions/{slug}> [--git-history]`. It catches what a bare grep "
     "MISSES: encoded keys (base64/hex decode layer), PII, financial data, source-maps, "
     "git-history; each secret/key -> H-NN (offline-derive + keypair->role correlation for severity). "

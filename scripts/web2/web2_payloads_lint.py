@@ -3,10 +3,10 @@
 """Presence-lint: web2 payload-справочники (FDE План 5, Task 7).
 
 Проверяет:
-  (a)/(b) в `bug-bounty-toolkit/scripts/web2/payloads/` лежат все 10 ожидаемых .md файлов (bola,
+  (a)/(b) в `scripts/web2/payloads/` лежат все 10 ожидаемых .md файлов (bola,
       bfla, bopla, jwt, oauth2, mass_assignment, blind_ssrf, rate_limit, cors, ssrf_bypass)
   (c) каждый несёт секцию `## Detection Signal`
-  (d)-(m) secrets-regex (владелец: `bug-bounty-toolkit/scripts/cicd_leak_scanner.py`,
+  (d)-(m) secrets-regex (владелец: `scripts/cicd_leak_scanner.py`,
       `SECRET_REGEXES` dict) матчит все 6 форматов GitHub-токенов + AWS/Google/Slack/JWT/
       private-key/Discord, и НЕ матчит чистую строку без секретов.
 
@@ -15,7 +15,7 @@ temp-каталога (3 файла вместо 10, один без `## Detecti
 проверок. Прогон против реального `payloads/` — обязаны PASS все. Без этого сравнения тест был бы
 vacuous (грепнул бы 10 файлов один раз и не доказал, что умеет ловить регресс).
 
-Запуск: py -3 -X utf8 bug-bounty-toolkit/scripts/web2/web2_payloads_lint.py
+Запуск: py -3 -X utf8 scripts/web2/web2_payloads_lint.py
 """
 import glob
 import os

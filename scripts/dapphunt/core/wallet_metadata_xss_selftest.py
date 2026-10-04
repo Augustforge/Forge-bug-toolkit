@@ -23,7 +23,7 @@ Proves:
      metadata_references_found, sinks_found, composed_hits, notes) are unchanged so any
      existing consumer of wallet_metadata_xss.json is not broken by the source-family split.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/dapphunt/core/wallet_metadata_xss_selftest.py
+Run: py -3 -X utf8 scripts/dapphunt/core/wallet_metadata_xss_selftest.py
 """
 # Ensure UTF-8 stdout so the summary (arrows/checks) prints on any console (Windows cp1251, etc.).
 import sys as _utf8_sys

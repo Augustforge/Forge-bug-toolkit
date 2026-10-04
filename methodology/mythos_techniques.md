@@ -189,14 +189,14 @@ encoded in the methodology; the hook catches it via RELEASE words).
 target / program link with the intent to hunt — including just "study <link>" in a new session
 (the operator does NOT type `/deephunt` themselves). Entry steps:
 1. auto-route to the right skill (CLAUDE.md §2 + `chain_detect.py`) — I invoke the skill myself (Skill tool);
-2. **raise the marker** `bug-bounty-toolkit/sessions/{target}/.hunt_active` (enables the forcing hook
+2. **raise the marker** `sessions/{target}/.hunt_active` (enables the forcing hook
    `hunt_completeness_gate.py` — a structural guard against premature exit);
-3. **stake out the ledger:** `cp bug-bounty-toolkit/sessions/_methodology/hypotheses_template.md
-   bug-bounty-toolkit/sessions/{target}/hypotheses.md`, fill in the header (the file carries LEDGER RULES —
+3. **stake out the ledger:** `cp sessions/_methodology/hypotheses_template.md
+   sessions/{target}/hypotheses.md`, fill in the header (the file carries LEDGER RULES —
    every hypothesis is tagged, passed ones are moved, the pool is unlimited). If it already exists (RESUME) — do NOT
    overwrite, read Loop State and continue;
-3b. **create the model:** `cp bug-bounty-toolkit/sessions/_methodology/system_model_template.md
-   bug-bounty-toolkit/sessions/{target}/system_model.md` (the entry hook does this itself, **regardless of
+3b. **create the model:** `cp sessions/_methodology/system_model_template.md
+   sessions/{target}/system_model.md` (the entry hook does this itself, **regardless of
    RESUME** — a hunt already in progress also gets the file). The sections `Corpus`…`Invariants` are filled **BEFORE
    reading the implementation** (T10). A target where T10 does not apply (small contract / dapphunt front end /
    web2) → `MODEL: N/A — <reason>` in Loop State;
@@ -467,7 +467,7 @@ recon-time — "check WHICH tests were turned off, and why" — the disabled tes
 worth attacking first. Cheap (one grep pass over `test/`/`tests/`/`spec/`), depends on OSS test visibility
 (closed-source / no test dir → `N/A`), applies to all three skills wherever a target repo exists.
 
-**Build-your-own stateful fuzz when the target is invariant-heavy but thin on fuzz (pashov `fizz`, [[reference_pashov_fizz]]) — TRIGGER.** If the per-area read above shows an invariant-heavy surface (vault / AMM / lending / staking — Cat 1/3/8) with NO own invariant/property/fuzz tests, that un-fuzzed accounting space is exactly where a multi-step call sequence breaks an invariant a targeted fork-PoC won't surface — fork-PoC proves a KNOWN hypothesis; Medusa/Echidna EXPLORE the call-sequence space we're otherwise blind to. On such a target, generate a stateful harness (`fizz` → `Properties.sol`/Handlers → Medusa) as an **explore-wide layer feeding hypotheses**, THEN fork-PoC + T4 the violations. This is the EVM twin of Trident-on-Solana; **build per-target** (harness is target-specific — don't pre-build). `fizz` is **cloned and ready** at `bug-bounty-toolkit/scripts/web3/fuzz_harness/fizz/` (entrypoint `fizz/SKILL.md`) — on a matching target grab it from there (+ the differential T8 engine alongside) and generate the suite under the target's contracts; dispatcher table in `fuzz_harness/README.md`. via-IR coverage gotcha + Docker-build in [[reference_toolkit_env]]; ingest notes [[reference_pashov_fizz]].
+**Build-your-own stateful fuzz when the target is invariant-heavy but thin on fuzz (pashov `fizz`, [[reference_pashov_fizz]]) — TRIGGER.** If the per-area read above shows an invariant-heavy surface (vault / AMM / lending / staking — Cat 1/3/8) with NO own invariant/property/fuzz tests, that un-fuzzed accounting space is exactly where a multi-step call sequence breaks an invariant a targeted fork-PoC won't surface — fork-PoC proves a KNOWN hypothesis; Medusa/Echidna EXPLORE the call-sequence space we're otherwise blind to. On such a target, generate a stateful harness (`fizz` → `Properties.sol`/Handlers → Medusa) as an **explore-wide layer feeding hypotheses**, THEN fork-PoC + T4 the violations. This is the EVM twin of Trident-on-Solana; **build per-target** (harness is target-specific — don't pre-build). `fizz` is **cloned and ready** at `scripts/web3/fuzz_harness/fizz/` (entrypoint `fizz/SKILL.md`) — on a matching target grab it from there (+ the differential T8 engine alongside) and generate the suite under the target's contracts; dispatcher table in `fuzz_harness/README.md`. via-IR coverage gotcha + Docker-build in [[reference_toolkit_env]]; ingest notes [[reference_pashov_fizz]].
 
 *Three bug-hotspot axes (bump score on a file that hits any):* **Complexity** (math-heavy, cross-chain/bridge, diamond proxy — stacked assumptions), **Innovation** (novel RWA/ZK/privacy, new yield mechanics, consensus tweaks, uncommon language/chain — fewer reviewers), **Optimization** ("many bugs originate from optimization": heavy assembly, gas-opt, manual memory mgmt, rewritten math — an assembly/rewritten-math block = automatic score-bump, edge cases hide there, especially post-refactor). These compose with the assumption-enumeration lens below.
 
@@ -578,7 +578,7 @@ Markers are greppable for self-audit: a score-3+ file read with zero markers = y
 
 Bulk-run the code-level signals at once: `py -3 -X utf8 scripts/web3/hypothesis/solodit_pattern_signals.py --target <src>`.
 
-**Attack-tree lookup (per protocol-type):** once the target's protocol type is known, walk the matching tree in `bug-bounty-toolkit/attack-trees/` (`_INDEX.md` maps tree→Cat) top-down; each leaf you can't immediately refute = an H-{NN} candidate. This is the structured *where-to-look* companion to the taxonomy's *what-kind-of-bug*.
+**Attack-tree lookup (per protocol-type):** once the target's protocol type is known, walk the matching tree in `attack-trees/` (`_INDEX.md` maps tree→Cat) top-down; each leaf you can't immediately refute = an H-{NN} candidate. This is the structured *where-to-look* companion to the taxonomy's *what-kind-of-bug*.
 
 ### Addendum — Post-Run Coverage Gap-Map (turns "found nothing" into "here's what I didn't read")
 

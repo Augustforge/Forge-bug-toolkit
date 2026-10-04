@@ -23,8 +23,8 @@ web2-producer'ы: authz_diff.py/openapi_to_acnn.py не грузят hunt_comple
     run_composition_map(model_rows, session_dir, dnn_invariants=None) -> str  # пишет .md, возвращает путь
 
 CLI:
-    py -3 -X utf8 composition_map.py --session-dir bug-bounty-toolkit/sessions/example.com
-    py -3 -X utf8 composition_map.py --model path/to/system_model.md --session-dir bug-bounty-toolkit/sessions/example.com
+    py -3 -X utf8 composition_map.py --session-dir sessions/example.com
+    py -3 -X utf8 composition_map.py --model path/to/system_model.md --session-dir sessions/example.com
 
 Наблюдательный примитив: composition_map.py никогда не мутирует `system_model.md` -- только читает и
 пишет отдельный co-located артефакт. Fail-open на CLI-уровне не применимо (детерминированный batch-
@@ -309,7 +309,7 @@ def main(argv=None):
         description="composition_map -- trust-boundary graph from system_model.md (FDE Plan 6, §43.1)")
     ap.add_argument("--model", help="path to system_model.md (default: <session-dir>/system_model.md)")
     ap.add_argument("--session-dir", required=True,
-                     help="toolkit-rooted session dir, e.g. bug-bounty-toolkit/sessions/example.com")
+                     help="toolkit-rooted session dir, e.g. sessions/example.com")
     args = ap.parse_args(argv)
 
     model_path = args.model or os.path.join(args.session_dir, "system_model.md")

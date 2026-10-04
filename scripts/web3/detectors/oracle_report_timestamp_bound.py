@@ -26,7 +26,7 @@ A site with (A)+(B) and NO (C) is the Ostium shape. This does NOT prove a bug â€
 each flag needs the manual "is the report timestamp bounded on BOTH sides, and is the
 price sanity-banded vs the previous?" check.
 
-See: bug-bounty-toolkit/methodology/hypothesis_taxonomy.md Cat 5.14.
+See: methodology/hypothesis_taxonomy.md Cat 5.14.
 
 Usage:
     py -3 -X utf8 oracle_report_timestamp_bound.py <path-to-sol-src> [--json out.json] [--all]

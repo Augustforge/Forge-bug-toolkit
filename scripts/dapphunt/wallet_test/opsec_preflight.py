@@ -24,13 +24,13 @@ import time
 # Constants
 # ---------------------------------------------------------------------------
 
-# Canonical burner address (see bug-bounty-toolkit/wallets/burner_evm_001), compared case-insensitively.
+# Canonical burner address (see wallets/burner_evm_001), compared case-insensitively.
 BURNER_ADDRESS = "0x000000000000000000000000000000000000dEaD"
 
 ALLOWED_OBJECTIVES = ("quick", "comprehensive", "stealth")
 ALLOWED_PROFILES = ("web3", "web2")
 
-# Filename of the operator's persistent OPSEC baseline (kept in the root of bug-bounty-toolkit/, NOT
+# Filename of the operator's persistent OPSEC baseline (kept in the root of , NOT
 # committed -- like .env). It holds ONLY static environment facts signed off once: vpn/incognito/
 # not_logged_main + burner address + balance_cap + rate_limit + objective default. It does NOT hold per-target
 # facts (balance, target.in_scope, test_accounts) -- those are supplied by the caller per-call, and they
@@ -38,7 +38,7 @@ ALLOWED_PROFILES = ("web3", "web2")
 BASELINE_FILENAME = "opsec_baseline.json"
 
 # The path to sessions/ is derived from the location of THIS file (not from os.getcwd()) -- the module lives
-# in bug-bounty-toolkit/scripts/dapphunt/wallet_test/, three levels up = bug-bounty-toolkit/.
+# in scripts/dapphunt/wallet_test/, three levels up = .
 # This way the gate does not depend on where it was imported from (see CLAUDE.md on the sessions/ vs CWD confusion).
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _TOOLKIT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -141,7 +141,7 @@ def load_baseline(path=None):
     uncovered axis. That is, the baseline can ONLY fill in missing static keys of a valid
     per-call config; it cannot make an invalid launch valid.
 
-    Path: env OPSEC_BASELINE_PATH (for test isolation), otherwise bug-bounty-toolkit/opsec_baseline.json.
+    Path: env OPSEC_BASELINE_PATH (for test isolation), otherwise opsec_baseline.json.
     The baseline does NOT contain per-target/factual axes (balance, target.in_scope, test_accounts): those are
     supplied by the caller per-call, and on merge they override the baseline (see preflight)."""
     if path is None:

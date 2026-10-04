@@ -6,7 +6,7 @@ Root cause: a hunt on a real DeFi protocol -- the model was built (T10), but `##
 over the whole hunt, and blind_spots.md was untouched. Mandate 0.9: zero D-NN = "the detector did not fire" -> escalate the method + log it.
 It used to be prose -- B4 makes it enforced (soft-nudge). The test proves FIRING + anti-FP.
 
-Run: py -3 -X utf8 bug-bounty-toolkit/scripts/_methodology/zero_dnn_replay.py
+Run: py -3 -X utf8 scripts/_methodology/zero_dnn_replay.py
 
 NOTE: the fixture strings below (model table headers, ledger "extra" lines, model prose) are inputs to the
 gate's Russian-matching logic and are kept verbatim in Russian; only comments and test names are English.

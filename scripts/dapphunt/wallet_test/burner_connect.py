@@ -27,7 +27,7 @@ from typing import List
 
 
 BURNER_ADDRESS = "0x000000000000000000000000000000000000dEaD"
-BURNER_README = "bug-bounty-toolkit/wallets/burner_evm_001/README.md"
+BURNER_README = "wallets/burner_evm_001/README.md"
 
 
 @dataclass
