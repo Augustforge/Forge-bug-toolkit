@@ -5,7 +5,7 @@ Purpose: close a miss (jetinfosystems_tab_1 2026-08-14) — during a hunt the hu
 ad-hoc `grep apikey|secret|token` over a bundle/source-map INSTEAD of the systemic detector, and only remembers
 the producer after a nudge from the operator. The Stop gate `active_exposure_scan_skipped` holds the exit, but
 catches it only ON EXIT, not at the MOMENT of working with the bundle. Precedent for the form —
-model_first_nudge / safeguard_hygiene_nudge (a soft PreToolUse reminder at the action boundary, not a block).
+model_first_nudge (a soft PreToolUse reminder at the action boundary, not a block).
 
 Fire iff (a) ad-hoc secret-grep: Bash/PowerShell with a grep tool + a secret token, OR a Grep tool with
             a secret pattern (and it is NOT a call to the producer itself) AND
