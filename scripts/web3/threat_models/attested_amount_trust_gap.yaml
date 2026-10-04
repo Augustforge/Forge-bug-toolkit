@@ -1,0 +1,87 @@
+name: Attested-Amount Trust Gap (Cross-Chain / Off-Chain Sibling Lens)
+id: attested_amount_trust_gap
+
+applies_when:
+  protocol_class: [bridge, oracle, restaking, wrapped-asset, lst, aggregator, perps]
+  tags: [attested-payload, off-chain-attestation, operator-signed, pyth, redstone, oracle-payload, lrt, eigenlayer, symbiotic, intent-solver, uniswap-x, cowswap, across]
+  chain: [any]
+
+negative_match:
+  tags: [attestation_semantic_verified_post_2026]
+
+assumption_violated: |
+  Any system that consumes off-chain-attested payloads (notary signatures,
+  operator-signed reports, oracle update bundles, restaking attestations, intent
+  solver fills) assumes that **cryptographic signature validity implies semantic
+  validity** of the payload contents (amounts, prices, slashing reports, fill
+  prices). This is wider than the bridge-specific case — same root-cause class
+  appears in LRT operator slashing misreport, Pyth feed payload tampering,
+  restaking attestation forgery, and intent-solver settlement gaming.
+
+actors:
+  - role: signing_operator
+    capability: Signs payloads as part of legitimate role (LRT operator reporting slashing, oracle node signing price update, intent solver attesting fill)
+  - role: malicious_signer_or_bonded_actor
+    capability: Has valid signing key (bonded as LRT operator / whitelisted as oracle / approved as solver), signs adversarially-crafted payload
+  - role: external_attacker_with_forged_payload
+    capability: Constructs payload that passes signature verification (lone-forge or N-of-M collusion) and exploits semantic gap downstream
+
+attack_vector: |
+  Same conceptual pattern across domains:
+  - **Bridges** (Verus/Wormhole/Nomad class): payload says "release $X" — destination verifies sigs, does not verify source burn = $X
+  - **LRT operators**: operator signs slashing report saying "no slashing happened" — restaking protocol distributes rewards based on signed report, does not verify on-chain slashing events
+  - **Oracle bundles** (Pyth/RedStone class): publisher signs price update — consumer verifies sig, does not verify price within historical range / deviation bounds
+  - **Intent solvers** (UniswapX class): solver attests "filled at price P" — settlement contract verifies solver's sig, does not verify P matches market at block.timestamp
+  Root cause across all: cryptographic verification path ≠ semantic verification path. Defense: pair every attestation with downstream semantic invariant assertion.
+
+hypotheses_template:
+  - "If LRT/restaking protocol consumes operator-signed slashing reports or performance attestations, look for a downstream check: does it match the signed report against on-chain `Slashed` events? Without such a check the operator can lie with impunity."
+  - "If protocol consumes Pyth/RedStone/Chainlink-Off-Chain price updates with aggregator signatures, check: is there a price deviation bound check (e.g., `require(abs(newPrice - lastPrice) < maxDeviation)`)? Without it, collusion among publishers gives an arbitrary price."
+  - "If an intent solver sends a signed settlement attestation, check: does the settlement contract validate fill price against oracle / on-chain swap price at execution block? Without it, the solver can drain user funds via 'attested' worst execution."
+  - "If a bridge / cross-chain validator set has signing privilege, check: what exactly do the signatures validate? Hash of payload (cryptographic) or semantic claim (e.g., 'this amount was actually locked')? If only the hash — attested-trust gap."
+  - "If payload contains amount/price/state field consumed downstream, look for `require/assert/revert` linking this field to an on-chain verifiable value (event log, storage read, range check). Absence of such a link = critical gap."
+
+severity_floor: medium
+severity_ceiling: critical
+
+case_studies:
+  - verus-2026-source-amount-forge
+  - wormhole-2022-signature-bypass
+  - nomad-2022-merkle-root-init
+
+related_checklists:
+  - scripts/web3/checklists/specialized/bridge.md
+  - scripts/web3/checklists/specialized/oracle.md
+
+related_prompts:
+  - scripts/web3/prompts/oracle_lies.md
+  - scripts/web3/prompts/validator_extracts.md
+  - scripts/web3/prompts/bridge_message_forge.md
+
+# Cross-reference: cross_chain_source_destination_binding.yaml — narrower bridge-specific case.
+# This model is the broader conceptual lens for J0 hypothesis generation.
+# Sibling intent-solver class: cross-link in threat_models/_PATTERN_REGISTRY.md axis (1).
+
+last_validated_against:
+  date: 2026-05-19
+  targets: []
+  outcome: pending_first_use
+
+# Sunset clause: if class accuracy <30% over 5 hunts → re-enter learning_paths.
+
+executable_checks:
+  - type: grep
+    pattern: "(verifySignature|recoverSigner|ecrecover|ed25519_verify|secp256k1_recover|verifyAttestation).*payload|.*update|.*report"
+    languages: [sol, rust, go]
+    severity_if_match: medium
+    note: "Surface attestation consumption — manually verify downstream semantic invariant check (price bound, slashing event match, source amount conservation)"
+  - type: grep
+    pattern: "(IPyth|IRedStone|IChainlinkAggregator|IOffchainAggregator).*price|.*update"
+    languages: [sol]
+    severity_if_match: low
+    note: "Off-chain oracle integration — verify deviation bounds + staleness check present"
+  - type: grep
+    pattern: "(reportSlashing|attestPerformance|operatorReport|signedReport|aggregateReport)"
+    languages: [sol, rust]
+    severity_if_match: medium
+    note: "LRT / restaking signed report — verify downstream on-chain event matching"

@@ -1,0 +1,24 @@
+// Test template: fake sysvar account injection
+
+use solana_program_test::*;
+use solana_sdk::{account::Account, pubkey::Pubkey};
+
+#[tokio::test]
+async fn test_exploit_fake_sysvar() {
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+
+    // Inject fake Clock sysvar with manipulated timestamp
+    let fake_clock_key = Pubkey::new_unique();
+    program_test.add_account(fake_clock_key, Account {
+        lamports: 1_000_000,
+        // Clock struct: slot(u64) + epoch_start_timestamp(i64) + epoch(u64) + leader_schedule_epoch(u64) + unix_timestamp(i64)
+        data: vec![/* attacker-chosen timestamp bytes */ 0u8; 40],
+        owner: solana_sdk::sysvar::clock::id(), // pretend ownership
+        executable: false,
+        rent_epoch: 0,
+    });
+
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+    // TODO: call instruction passing fake_clock_key instead of real sysvar::clock
+    // expect: protocol uses attacker-controlled timestamp → bypass time-based check
+}

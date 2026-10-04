@@ -1,0 +1,89 @@
+name: Agent Economy Escrow & Identity Trust Gaps
+id: agent_economy_escrow_identity
+
+applies_when:
+  protocol_class: [other, governance, aggregator]
+  tags: [agent_economy, eip8004, eip8183, acp, x402, agent_identity, agent_reputation, escrow, ai_evaluator, agentic_commerce]
+  chain: [any]
+
+negative_match:
+  tags: []
+  protocol_class: []
+
+assumption_violated: |
+  Agent-economy infra (EIP-8004 identity/reputation registries, EIP-8183/ACP escrow,
+  x402 payments) silently assumes: (1) the Evaluator that settles a funded job is honest,
+  reachable, and judges the artifact the Provider actually committed; (2) reputation is
+  one-actor-one-honest-signal; (3) the agent's payout wallet only changes under the owner's
+  signature; (4) a funded job can always be exited by SOME party. Each assumption is a
+  trust boundary that the contract does not actually enforce in code.
+
+actors:
+  - role: malicious_client
+    capability: funds a job, controls deliverableUrl/evidence input, can claimRefund at expiry
+  - role: malicious_provider
+    capability: submits a job, can deploy a reverting afterAction hook, races complete()
+  - role: third_party
+    capability: calls permissionless giveFeedback/requestEvaluation; front-runs evaluation
+  - role: agent_operator
+    capability: approved operator who may reach wallet/metadata mutation paths
+
+attack_vector: |
+  The Evaluator is the single settlement authority — substitute the evidence it judges
+  (unbound deliverableUrl vs on-chain commitment) or prompt-inject it if it is an AI agent.
+  At expiredAt, complete() and claimRefund() are both live with no priority -> frontrun duel.
+  complete()/reject() transfer before the afterAction hook with no try/catch -> a reverting
+  hook holds the Provider payout hostage (refund leg is deliberately unhookable = asymmetric).
+  Reputation: giveFeedback has no per-submitter cap (Sybil) and getSummary normalizes all
+  entries to 18 decimals then sums -> int128 overflow -> negative score from positive input.
+  Identity: register() _safeMints before bookkeeping (reentrancy) and any agentWallet setter
+  reachable without EIP-712/ERC-1271 owner signature redirects the agent's funds.
+
+hypotheses_template:
+  - "If the escrow exposes complete() and claimRefund() both reachable at expiredAt, then check for a precedence/mutex flag — absent = expiry-race frontrun (Cat 23.5)"
+  - "If complete()/reject() calls an afterAction/post-settlement hook, then verify the settlement transfer is AFTER the hook OR the hook is try/catch-isolated — payout-before-unguarded-hook = hostage DoS (Cat 23.6)"
+  - "If requestEvaluation/submit takes a deliverableUrl or artifact from calldata, then check keccak256(deliverable) is compared to the Provider's on-chain committed hash — unbound = evidence substitution (Cat 23.7)"
+  - "If Evaluator = AI/LLM agent, then check prompt-injection / model-bias on attacker-controlled job inputs; a single settlement-authority = SPOF (Cat 23.8)"
+  - "If giveFeedback() has no per-address cap/stake, then Sybil reputation flooding applies (Cat 23.2); if getSummary normalizes decimals then sums, check int128 downcast overflow -> sign flip (Cat 23.3)"
+  - "If register() _safeMints before agentURI/agentWallet bookkeeping, then check onERC721Received reentrancy -> stale identity (Cat 23.1)"
+  - "If any path mutates agentWallet/payout address, then verify it enforces an EIP-712/ERC-1271 owner signature — unsigned setter = wallet redirect (Cat 23.9, composite 14.5)"
+  - "If a job can be funded before setProvider (open-assignment), then check for a same-state cancel — absent = liveness trap, funds locked until expiredAt (Cat 23.4)"
+
+severity_floor: medium
+severity_ceiling: critical
+
+case_studies: [certik_agent_economy_2026]   # audit-derived patterns (no live exploit yet); CertiK "Rise of the Agent Economy" 1+2
+related_checklists: [scripts/dapphunt/checklists/wallet_signing_flows.md]
+related_prompts: []
+
+last_validated_against:
+  date: 2026-06-17
+  targets: []
+  outcome: inconclusive
+
+executable_checks:
+  - type: grep
+    pattern: "_safeMint|onERC721Received"
+    languages: [sol]
+    severity_if_match: medium
+    note: "registry mint-before-bookkeeping reentrancy surface (Cat 23.1)"
+  - type: grep
+    pattern: "afterAction|beforeAction"
+    languages: [sol]
+    severity_if_match: high
+    note: "settlement hook — check transfer ordering + try/catch isolation (Cat 23.6)"
+  - type: grep
+    pattern: "deliverableUrl|requestEvaluation|evidenceUrl"
+    languages: [sol, ts]
+    severity_if_match: high
+    note: "evaluation input — must bind to on-chain committed hash (Cat 23.7)"
+  - type: grep
+    pattern: "giveFeedback|reputation|modeDecimals"
+    languages: [sol]
+    severity_if_match: medium
+    note: "reputation Sybil + decimal-normalization overflow (Cat 23.2/23.3)"
+  - type: grep
+    pattern: "agentWallet|setAgentURI|agentURI"
+    languages: [sol]
+    severity_if_match: high
+    note: "agent-wallet redirect — must require EIP-712/ERC-1271 owner sig (Cat 23.9)"

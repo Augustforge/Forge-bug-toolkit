@@ -1,0 +1,26 @@
+id: governance_bypass
+description: Direct call to protocol-critical function from non-governance address.
+
+applies_to: [evm]
+
+match:
+  function_selectors:
+    - "0xb6b55f25"                             # deposit(uint256) — but from non-user-EOA
+    - "0xfa6c5f08"                             # setMinter / setSlasher / setRole
+    - "0x2f2ff15d"                             # grantRole(bytes32,address)
+    - "0xd547741f"                             # revokeRole(bytes32,address)
+    - "0x6a627842"                             # mint(address) — direct mint
+  # Caller must NOT be timelock or governance multisig:
+  caller_must_NOT_be:
+    - role: timelock_executor
+    - role: governance_multisig
+
+severity: critical
+disposition: alert_only
+
+rate_limit:
+  per_pattern_per_hour: 5
+
+notes: |
+  Triggered on: Drift governance hijack, Resolv mint authority compromise.
+  Critical when admin functions called outside the governance path.

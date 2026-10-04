@@ -1,0 +1,138 @@
+id: permit2_blind_signature_phishing
+title: Permit2 / EIP-2612 Blind Signature → Asynchronous Drain Primitive
+version: 1.0
+class: signing_phishing
+
+# Permit2 (Uniswap) and EIP-2612 permit allow off-chain approval signatures that
+# move tokens later without an on-chain approve() tx. One signature = persistent
+# spend authorization. Inferno Drainer, Angel Drainer (2024-2026) industrialized
+# this. dApp-level surface = our hunting strength.
+applies_when:
+  any_tag:
+    - permit2
+    - eip2612
+    - permit_signature
+    - blind_signing
+    - uniswap_router
+    - dex_router
+    - swap_aggregator
+    - approve_via_signature
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: inferno_drainer_2024
+    title: "Inferno Drainer kit — Permit2 vector industrialized for phishing (>$100M cumulative)"
+    platform: incident
+    severity: critical
+  - id: angel_drainer_2024
+    title: "Angel Drainer — pivots to Permit2/2612 to avoid approval friction"
+    platform: incident
+    severity: critical
+  - id: uniswap_phishing_clone_2025
+    title: "Multiple Uniswap-clone dApps requesting Permit2 against attacker spender"
+    platform: incident
+    severity: high
+
+hypotheses:
+  - id: H_permit2_spender_attacker_controlled
+    text: |
+      If `{dapp_domain}` requests Permit2 / EIP-2612 signature where the `spender`
+      field is an attacker-controlled address (or any address not matching the
+      dApp's documented router), then signing = full token allowance grant. Drain
+      happens later via `permitTransferFrom` from the spender → no follow-up signing.
+    verification:
+      - Capture EIP-712 typed-data signing request
+      - Decode `domain` (verifyingContract, chainId, name)
+      - For Permit2: `verifyingContract` should be the canonical Permit2 0x000000000022D473030F116dDEE9F6B43aC78BA3
+      - Decode message: `details.token`, `details.amount`, `spender`, `sigDeadline`
+      - `spender` field must match dApp's official router/contract
+      - Off-domain or unverified spender → Critical phish
+    severity_estimate: critical
+
+  - id: H_permit2_unlimited_amount
+    text: |
+      If `{dapp_domain}` requests Permit2 with `amount = type(uint160).max` or any
+      excessive value vs. user's actual intent (e.g., wants to swap $100 but signs
+      for unlimited), then attacker can drain via subsequent malicious push.
+      Common dApp UX antipattern: hardcoded uint160.max for "one-click" UX.
+    verification:
+      - Decode `details.amount` in Permit2 message
+      - Compare against the user's intended trade size from dApp UI
+      - amount >> intended trade size → Medium-High UX risk; full uint160.max → High
+    severity_estimate: high
+
+  - id: H_permit2_long_expiration
+    text: |
+      If `{dapp_domain}` sets `details.expiration` weeks/months in future
+      (Permit2 default = 30 days), then user retains unbounded exposure window.
+      Phisher who captures sig has 30-day quiet period to time the drain (e.g., wait
+      for whale to refill wallet).
+    verification:
+      - Decode `details.expiration` Unix timestamp
+      - Compare to block.timestamp; flag if > 7 days
+      - Compare `sigDeadline` (signature acceptance window) vs `expiration` (allowance window)
+    severity_estimate: medium
+
+  - id: H_eip2612_permit_phish_via_clone
+    text: |
+      If a clone dApp (under shared wildcard like `*.dapp.fi` — Phase 5 chain) renders
+      a fake "approve tokens to use this app" flow that issues `permit()` signatures
+      to attacker spender, then standard wallet signature flow (no approve tx) doesn't
+      trigger user suspicion. Compose with `auth_provider_wildcard` model.
+    verification:
+      - Test all clone subdomains identified in Phase 5
+      - On each clone, attempt "swap" or "deposit" flow
+      - Observe signing requests; flag any that issue EIP-2612 permit to non-canonical spender
+    severity_estimate: critical
+
+  - id: H_permit_batch_signing
+    text: |
+      If `{dapp_domain}` requests `PermitBatch` (multiple tokens at once), users
+      see one signing prompt for many allowances. Single click = N approvals.
+      Especially dangerous if list includes high-value tokens user didn't intend
+      to interact with.
+    verification:
+      - Decode `PermitBatch.details[]` array
+      - Cross-check each token vs user's stated trade intent
+      - Flag tokens unrelated to the dApp's stated function
+    severity_estimate: high
+
+  - id: H_off_chain_signature_endpoint_logs
+    text: |
+      If `{dapp_domain}` POSTs the captured signature to a backend endpoint (e.g.,
+      to relay later via Permit2.transferFromBySignature), the backend becomes a
+      hot target. Backend compromise = all queued signatures executable.
+    verification:
+      - Watch network traffic during sign + submit flow
+      - Identify endpoint receiving the signature
+      - Check endpoint auth: CORS open? CSRF protection?
+      - Document signature storage (DB? in-memory?)
+    severity_estimate: high
+
+mitigation: |
+  - dApps requesting Permit2 MUST display the spender contract name + verified-badge
+    in their own UI, NOT rely only on wallet UI.
+  - Wallets MUST decode `spender` and compare against domain-binding heuristics
+    (warn if spender doesn't match dApp's verifyingContract domain).
+  - Default `amount` to exact intended trade, not uint160.max — request fresh sig per op.
+  - Default `expiration` to ≤ 30 minutes for one-time intents.
+  - For long-lived allowances, require explicit user confirmation with cap displayed.
+  - dApp clones detection: monitor for unauthorized subdomains issuing permits.
+
+evidence_sources:
+  - sessions/$DOMAIN/wallet_signing_capture.json
+  - sessions/$DOMAIN/permit2_decoded_payloads.json
+  - sessions/$DOMAIN/network_signature_submission_endpoints.json
+
+autotag_signals:
+  text_in_bundle:
+    - "Permit2"
+    - "PermitSingle"
+    - "PermitBatch"
+    - "permitTransferFrom"
+    - "permit(.*,.*deadline"
+    - "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+  contract_address_match:
+    - "0x000000000022D473030F116dDEE9F6B43aC78BA3"   # Canonical Permit2

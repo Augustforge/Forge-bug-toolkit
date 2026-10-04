@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Permit2 witness binding edge case.
+// Attacker exploits mismatch between witnessTypeString and actual witness used.
+
+import "forge-std/Test.sol";
+
+interface IPermit2 {
+    struct TokenPermissions {
+        address token;
+        uint256 amount;
+    }
+    struct PermitTransferFrom {
+        TokenPermissions permitted;
+        uint256 nonce;
+        uint256 deadline;
+    }
+    struct SignatureTransferDetails {
+        address to;
+        uint256 requestedAmount;
+    }
+    function permitWitnessTransferFrom(
+        PermitTransferFrom memory permit,
+        SignatureTransferDetails calldata transferDetails,
+        address owner,
+        bytes32 witness,
+        string calldata witnessTypeString,
+        bytes calldata signature
+    ) external;
+}
+
+contract Permit2WitnessExploit is Test {
+    address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address constant TARGET = address(0); // protocol using Permit2 with witness
+    uint256 constant FORK_BLOCK = 0;
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+    }
+
+    function test_Exploit_Permit2WitnessMismatch() public {
+        // TODO:
+        // 1. Construct legitimate-looking permit
+        // 2. Compute witness hash with MALICIOUS data, but use TYPE string that user signed for benign data
+        // 3. Submit and verify protocol accepts despite mismatch
+
+        // This exploits ambiguity if protocol passes wrong typeString
+        assertTrue(false, "PLACEHOLDER — implement witness mismatch construction");
+    }
+}

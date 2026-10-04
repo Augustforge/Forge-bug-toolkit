@@ -1,0 +1,53 @@
+id: dns_takeover_under_wildcard
+title: Dangling CNAME under Auth Wildcard → Automatic Trust Inheritance
+version: 1.0
+class: trust_boundary
+
+applies_when:
+  any_tag:
+    - has_auth_wildcard
+    - has_many_subdomains
+
+severity_ceiling: critical
+severity_floor: high
+
+# Stacks on top of auth_provider_wildcard but with the DNS-takeover composition specifically
+reference_findings:
+  - id: web3_dns_takeover_class
+    title: "Subdomain takeover under wildcard auth = walletphishing primitive that bypasses content review"
+    severity: critical
+
+hypotheses:
+  - id: H_dangling_subdomain_inherits_trust
+    text: |
+      Auth provider config trusts `*.{base_domain}`. Some subdomain under this wildcard
+      has a CNAME pointing to an expired AWS S3 / Heroku / Vercel / Netlify / GitHub Pages
+      slug. An attacker registers the dangling resource and instantly inherits the trust
+      grant — the dApp's auth provider treats attacker content as legitimate.
+    verification:
+      - For each subdomain matching the wildcard, run `dig CNAME`
+      - Compare CNAME target hostname against takeover-prone services
+      - Use `nuclei -t takeovers/` or `subjack` for confirmation
+      - If a takeover is registerable, document the resource name (without actually claiming it)
+    severity_estimate: critical
+
+  - id: H_NXDOMAIN_under_wildcard_with_DNS_provider_takeover
+    text: |
+      Wildcard DNS provider (Cloudflare/Route53) permits creation of arbitrary subdomain
+      records by anyone who controls a different but related zone. If the dApp's DNS
+      provider has lax record-add policy, attacker can stand up the subdomain themselves.
+    verification:
+      - Identify DNS provider (whois / nameservers)
+      - Review provider's published security policy
+      - This is rare but documented (some CDNs allow zone-mapping via dashboard)
+    severity_estimate: medium
+
+mitigation: |
+  Inventory every subdomain under any wildcard-permitted base. Automate dangling-CNAME
+  detection (subjack/dangle weekly cron). Replace wildcards with explicit allowlists
+  where possible. Set DNS provider to "no override" if available.
+
+evidence_sources:
+  - sessions/$DOMAIN/crtsh.json
+  - sessions/$DOMAIN/dns_hygiene.json
+  - sessions/$DOMAIN/auth_provider_config.json

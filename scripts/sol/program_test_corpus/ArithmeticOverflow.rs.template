@@ -1,0 +1,20 @@
+// Test template: arithmetic overflow exploitation (Anchor < 0.30)
+
+use solana_program_test::*;
+
+#[tokio::test]
+async fn test_exploit_arithmetic_overflow() {
+    // Pass extreme values to trigger overflow in unchecked arithmetic
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    // Common overflow vectors:
+    // - amount = u64::MAX → overflow in deposit + balance calc
+    // - amount = 0 → divide by zero in share calc
+    // - amount = 1 with 18 decimals → precision loss in conversion
+    let attack_amounts = vec![u64::MAX, u64::MAX - 1, 1, 0];
+    for amount in attack_amounts {
+        // TODO: build instruction with amount
+        // expect for u64::MAX: either revert (good) or overflow → wrong balance
+    }
+}

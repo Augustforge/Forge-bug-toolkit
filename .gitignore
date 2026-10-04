@@ -1,0 +1,58 @@
+# ─── CRITICAL: secrets and findings (never commit!) ───────────────────────────
+.env
+.env.*
+!.env.example
+
+# Sessions contain raw findings, sometimes including credentials of victims.
+# Ignore the CONTENTS (not the directory itself — otherwise the re-include below won't work),
+# EXCEPT our methodology templates/checklists (not victim data, part of the system).
+sessions/*
+!sessions/_methodology/
+results/
+
+# Local cache (Etherscan source, Immunefi data, TVL snapshots, Twitter feeds)
+.bbt/
+
+# Logs
+*.log
+audit.log
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# ─── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+
+# ─── Foundry / Solidity ───────────────────────────────────────────────────────
+foundry-project/out/
+foundry-project/cache/
+foundry-project/broadcast/
+out/
+cache/
+
+# ─── IDE / OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+.docker/
+
+# ─── Watchlists are personal — example only ────────────────────────────────────
+watchlist.txt
+!watchlist.example.txt

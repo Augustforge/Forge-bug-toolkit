@@ -1,0 +1,173 @@
+// TridentFuzzHarness.rs.template — stateful Anchor fuzzing with Trident (Ackee Blockchain)
+//
+// Trident (ex-Trdelnik) — Rust fuzzer for Anchor programs. 12K tx/s, supported by Solana Foundation.
+// Repo: https://github.com/Ackee-Blockchain/trident
+//
+// Setup (run once in protocol's repo):
+//   cargo install trident-cli
+//   trident init                    # creates trident-tests/fuzz_tests/
+//   trident fuzz run <fuzz_target>  # runs the fuzzer
+//
+// This template is a minimal stateful harness that catches invariant breaks.
+// Replace PROGRAM_NAME, INSTRUCTION_*, ACCOUNT_* placeholders.
+
+use trident_fuzz::fuzzing::*;
+
+const PROGRAM_NAME: &str = "PROGRAM_NAME";
+
+#[derive(Arbitrary, FuzzTestExecutor, ProgramFuzzer)]
+pub enum FuzzInstruction {
+    InitializeVault(InitializeVault),
+    Deposit(Deposit),
+    Withdraw(Withdraw),
+    FlashLoan(FlashLoan),
+    AdminUpdate(AdminUpdate),
+}
+
+// ============ Instruction wrappers ============
+
+#[derive(Arbitrary, Debug, Clone, IxOps)]
+pub struct InitializeVault {
+    pub accounts: InitializeVaultAccounts,
+    pub data: InitializeVaultData,
+}
+
+#[derive(Arbitrary, Debug, Clone, IxAccounts)]
+pub struct InitializeVaultAccounts {
+    #[account(mut, signer)]
+    pub admin: AccountId,
+    #[account(mut)]
+    pub vault: AccountId,
+    pub token_mint: AccountId,
+    pub system_program: AccountId,
+}
+
+#[derive(Arbitrary, Debug, Clone, IxData)]
+pub struct InitializeVaultData {
+    pub max_deposit: u64,
+    pub fee_bps: u16,
+}
+
+// ============ Invariant Checks (this is the value-add) ============
+
+pub struct VaultInvariants {
+    pub total_shares: u64,
+    pub total_assets: u64,
+    pub admin_pubkey: Pubkey,
+}
+
+impl FuzzInvariantChecker for VaultInvariants {
+    /// Invariant 1: total_shares > 0 implies total_assets > 0
+    /// (catches first-depositor inflation if violated)
+    fn check_share_assets_consistency(&self, client: &Client) -> Result<(), FuzzingError> {
+        let vault = client.get_vault_state();
+        if vault.total_shares > 0 && vault.total_assets == 0 {
+            return Err(FuzzingError::InvariantBroken(format!(
+                "Shares minted but no assets! shares={} assets=0",
+                vault.total_shares
+            )));
+        }
+        Ok(())
+    }
+
+    /// Invariant 2: redeem(shares) yields <= deposit(equivalent_assets)
+    /// (catches bidirectional rounding)
+    fn check_round_trip_non_profitable(&self, client: &Client) -> Result<(), FuzzingError> {
+        let initial = client.get_attacker_balance();
+        client.deposit(1_000_000)?;
+        let shares = client.get_attacker_shares();
+        client.redeem(shares)?;
+        let final_balance = client.get_attacker_balance();
+        if final_balance > initial {
+            return Err(FuzzingError::InvariantBroken(format!(
+                "Round-trip profit! initial={} final={}",
+                initial, final_balance
+            )));
+        }
+        Ok(())
+    }
+
+    /// Invariant 3: admin_pubkey set at init never changes without admin signature
+    /// (catches state route attacks that bypass admin check)
+    fn check_admin_immutable(&self, client: &Client) -> Result<(), FuzzingError> {
+        let current = client.get_vault_state().admin;
+        if current != self.admin_pubkey && !client.last_tx_had_admin_signer() {
+            return Err(FuzzingError::InvariantBroken(format!(
+                "Admin changed without admin sig! was={} now={}",
+                self.admin_pubkey, current
+            )));
+        }
+        Ok(())
+    }
+
+    /// Invariant 4: account.owner == expected_program for every loaded account
+    /// (catches Cashio-class owner check bypass)
+    fn check_account_ownership(&self, client: &Client) -> Result<(), FuzzingError> {
+        let suspicious = client.get_last_tx_accounts_with_unexpected_owner();
+        if !suspicious.is_empty() {
+            return Err(FuzzingError::InvariantBroken(format!(
+                "{} accounts had unexpected owner this tx",
+                suspicious.len()
+            )));
+        }
+        Ok(())
+    }
+
+    /// Invariant 5: flash loan state flag cleared at end of every tx
+    /// (catches Marginfi-class state-route bypass)
+    fn check_flash_loan_flag_cleared(&self, client: &Client) -> Result<(), FuzzingError> {
+        let any_account_in_flashloan = client
+            .get_all_accounts()
+            .iter()
+            .any(|a| a.flags.contains(AccountFlag::IN_FLASHLOAN));
+        if any_account_in_flashloan {
+            return Err(FuzzingError::InvariantBroken(
+                "Flash loan flag still set at end of tx".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+// ============ Entry point ============
+
+fn main() {
+    let fuzz_config = FuzzConfig {
+        iterations: 100_000,
+        tx_per_iteration: 50,
+        seed: None, // randomize each run
+        timeout_sec: 600,
+        invariants: vec![
+            InvariantId::ShareAssetsConsistency,
+            InvariantId::RoundTripNonProfitable,
+            InvariantId::AdminImmutable,
+            InvariantId::AccountOwnership,
+            InvariantId::FlashLoanFlagCleared,
+        ],
+    };
+
+    fuzz_trident! {
+        FuzzInstruction,
+        VaultInvariants,
+        fuzz_config
+    }
+}
+
+// ============ Usage Notes ============
+//
+// 1. Replace PROGRAM_NAME with actual Anchor program name.
+// 2. Replace AccountId placeholders with real account types from your IDL.
+// 3. Trident auto-generates Arbitrary impls for most types — manual override if needed.
+// 4. Run via: `trident fuzz run fuzz_target_name`
+// 5. Save corpus: `trident fuzz add-corpus <crash_file>` — preserves regression cases
+// 6. Coverage: `trident fuzz coverage` — shows which instruction paths exercised
+//
+// Common pitfalls:
+// - If invariant check requires reading multiple accounts atomically — use Client.snapshot()
+// - For PDA collision tests, override `derive_pda` to feed adversarial seeds
+// - Fuzzer can't reach states behind cryptographic guards (BLS sigs, ZK proofs) — model those manually
+//
+// Validation gates:
+// - Run 1: 10k iterations local — expect zero findings (sanity check)
+// - Run 2: 100k iterations — invariant breaks indicate real bugs
+// - Run 3: corpus replay — confirm bugs reproducible deterministically

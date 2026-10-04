@@ -1,0 +1,43 @@
+id: weak-csp-on-defi-ui
+
+info:
+  name: Weak CSP on DeFi UI (Frontend Hijacking Risk)
+  author: bbt
+  severity: medium
+  description: |
+    DeFi protocol UIs with weak Content-Security-Policy are at high risk
+    of frontend hijacking attacks (e.g. Curve, Balancer, KyberSwap incidents).
+    A protocol UI with unsafe-inline or wildcard script-src + DeFi keywords
+    in body should be flagged.
+  reference:
+    - https://www.blockaid.io/blog
+  tags: defi,csp,frontend-hijack,web3,bug-bounty
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+      - "{{BaseURL}}/swap"
+      - "{{BaseURL}}/pool"
+      - "{{BaseURL}}/farm"
+      - "{{BaseURL}}/stake"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "connect wallet"
+          - "swap"
+          - "liquidity"
+          - "metamask"
+          - "walletconnect"
+        condition: or
+
+      - type: dsl
+        dsl:
+          - "contains(tolower(header), 'unsafe-inline') || contains(tolower(header), 'unsafe-eval') || !contains(tolower(header), 'content-security-policy')"

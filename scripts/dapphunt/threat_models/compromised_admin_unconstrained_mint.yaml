@@ -1,0 +1,127 @@
+id: compromised_admin_unconstrained_mint
+title: Compromised Admin Key + Unconstrained Mint → Cross-Protocol Drain
+version: 1.0
+class: token_architecture
+
+# When to apply this threat model
+applies_when:
+  any_tag:
+    - wrapped_token
+    - bridge_token
+    - synthetic
+    - lst
+    - lrt
+    - btcfi
+    - cross_chain_wrapper
+    - mintable_erc20
+
+severity_ceiling: critical
+severity_floor: high
+
+# Real-world reference findings
+reference_findings:
+  - id: echo_monad_2026_05_19
+    title: "Echo Protocol eBTC compromised admin key → 1000 eBTC mint ($76.7M nominal / $816K realized)"
+    platform: incident
+    target_class: bridge_wrapper
+    severity: critical
+  - id: ronin_bridge_2022
+    title: "Ronin Bridge — 5/9 validator key compromise → $625M drain"
+    platform: incident
+    target_class: bridge
+    severity: critical
+  - id: multichain_2023
+    title: "Multichain — admin MPC key loss → $130M drain"
+    platform: incident
+    target_class: bridge
+    severity: critical
+
+hypotheses:
+  - id: H_minter_role_eoa
+    text: |
+      If MINTER_ROLE on `{token_contract}` is held by an EOA (not a multisig or
+      timelock), then any compromise of that single key permits unconstrained mint
+      followed by collateral drain in any integrated lending protocol. Pre-condition
+      check: query `getRoleMembers(MINTER_ROLE)`; classify each address (EOA vs
+      contract; if contract — Gnosis Safe / Timelock / Governance / unknown).
+    verification:
+      - For each role holder address, fetch on-chain bytecode; empty = EOA
+      - For contract holders, check if it's a Gnosis Safe (factory pattern) or TimelockController
+      - Document threshold + signer count if multisig
+      - Single EOA holder → Critical centralization risk
+    severity_estimate: critical
+
+  - id: H_no_supply_cap
+    text: |
+      If `{token_contract}` has no `totalSupply` cap and an unrestricted MINTER_ROLE,
+      then a compromised minter can mint arbitrary amount limited only by uint256
+      overflow. Combined with H_minter_role_eoa → unbounded loss exposure.
+    verification:
+      - Read contract source/bytecode for cap, MAX_SUPPLY, or onlyWithinCap modifier
+      - Verify mint function has no per-tx or per-epoch rate limit
+      - Verify no circuit-breaker that pauses on supply growth anomaly
+    severity_estimate: critical
+
+  - id: H_no_timelock_on_role_changes
+    text: |
+      If grantRole / revokeRole / changeAdmin operations execute instantly without a
+      TimelockController in the path, then a compromised admin can grant themselves
+      MINTER_ROLE in a single tx. No defender response window.
+    verification:
+      - Check if DEFAULT_ADMIN_ROLE points to a TimelockController contract
+      - Read minDelay() and check it's a reasonable defense window (≥24h)
+      - Check if Echo / similar projects publicized timelock — if not, assume none
+    severity_estimate: high
+
+  - id: H_cross_protocol_collateral_chain
+    text: |
+      If `{token_contract}` is accepted as collateral in any lending protocol on the
+      same chain, then a compromised mint immediately becomes realized loss through:
+      deposit fake collateral → borrow real assets → bridge out → mix. Loss capped
+      only by available liquidity in the chain's DEX + lending depth.
+    verification:
+      - Enumerate lending protocols on the chain (defillama API by chain)
+      - For each, check if {token_contract} is in supported collateral list
+      - Document per-collateral borrow cap if present
+      - Document oracle source — does it verify real backing or just price?
+    severity_estimate: critical
+
+  - id: H_no_emergency_pause
+    text: |
+      If `{token_contract}` lacks a pause() function callable by a separate guardian,
+      then once admin is compromised there is no breaking mechanism — burn must be
+      negotiated post-fact (as Echo did).
+    verification:
+      - Search contract for Pausable / PausableUpgradeable inheritance
+      - Check if pauser role is separate from admin role
+      - Verify pauser is held by an independent address (security council / guardian)
+    severity_estimate: medium
+
+mitigation: |
+  - Move MINTER_ROLE and DEFAULT_ADMIN_ROLE to a Gnosis Safe ≥3/5 with independent signers.
+  - Wrap admin operations in a TimelockController with ≥24h minDelay.
+  - Implement totalSupply cap or per-epoch mint rate limit as defense-in-depth.
+  - Implement Pausable with guardian role separated from admin.
+  - Audit downstream lending protocols' collateral acceptance — request whitelist with
+    backing-ratio oracle verification (not just price).
+  - OPSEC hygiene: HSM / hardware wallet for any production signing key; rotate periodically.
+
+# Evidence sources the apply engine reads
+evidence_sources:
+  - sessions/$DOMAIN/onchain/token_role_holders.json
+  - sessions/$DOMAIN/onchain/token_supply_config.json
+  - sessions/$DOMAIN/onchain/lending_collateral_acceptance.json
+  - sessions/$DOMAIN/onchain/timelock_config.json
+
+# Auto-tag triggers
+autotag_signals:
+  bytecode_signature:
+    - "MINTER_ROLE"
+    - "DEFAULT_ADMIN_ROLE"
+    - "AccessControl"
+  contract_name_match:
+    - wrapped
+    - bridge
+    - cross.?chain
+    - eBTC|wBTC|aBTC|mBTC
+    - stETH|rETH|sfrxETH

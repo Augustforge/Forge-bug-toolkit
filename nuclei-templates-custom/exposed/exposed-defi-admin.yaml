@@ -1,0 +1,46 @@
+id: exposed-defi-admin
+
+info:
+  name: Exposed DeFi Admin Interface
+  author: bbt
+  severity: high
+  description: |
+    Detects exposed admin / governance interfaces commonly found on DeFi
+    protocols. Often forgotten staging/preview deployments, but with full
+    governance authority.
+  tags: defi,exposed,admin,web3,bug-bounty
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/governance/admin"
+      - "{{BaseURL}}/internal/admin"
+      - "{{BaseURL}}/_admin"
+      - "{{BaseURL}}/staging/admin"
+      - "{{BaseURL}}/preview"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "admin panel"
+          - "governance"
+          - "execute proposal"
+          - "set fee"
+          - "pause protocol"
+          - "owner only"
+        condition: or
+
+      - type: word
+        part: body
+        words:
+          - "login"
+          - "sign in"
+          - "authentication required"
+        negative: true

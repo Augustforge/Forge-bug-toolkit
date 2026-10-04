@@ -1,0 +1,65 @@
+id: iframe_trust_composition
+title: Iframe Trust Composition — frame-ancestors + X-Frame-Options + dApp clone
+version: 1.0
+class: trust_boundary
+
+applies_when:
+  any_tag:
+    - has_clone
+    - has_dev_subdomain
+    - missing_frame_headers
+    - has_wallet_modal_iframe
+
+severity_ceiling: high
+severity_floor: low
+
+reference_findings:
+  - id: synfutures_2026_05_20
+    title: "Production hardened, dev clone unhardened → identical bundle iframe-rendering"
+    platform: hackenproof
+    severity: high
+
+hypotheses:
+  - id: H_clone_iframe_with_shared_auth
+    text: |
+      Subdomain `{clone_host}` serves an identical bundle to production `{primary_host}`
+      (same auth provider app ID and matching bundle signature) but lacks X-Frame-Options.
+      Iframe-rendering primitive available. Combined with shared auth trust, this composes
+      into a wallet-phishing chain.
+    verification:
+      - Confirm bundle hash equivalence (sha256 of bundle head)
+      - Confirm shared Privy/WalletConnect app ID
+      - HEAD-request clone host; confirm X-Frame-Options absent and CSP frame-ancestors absent
+      - Build a minimal HTML PoC that iframes the clone and shows the dApp loading + Connect Wallet button working
+    severity_estimate: high
+
+  - id: H_auth_iframe_origin_check
+    text: |
+      Auth provider iframe (e.g. https://auth.privy.io/) declares frame-ancestors that
+      include wildcards or untrusted origins. Composition: attacker frames dApp → dApp
+      frames auth iframe → auth iframe trusts the malicious parent.
+    verification:
+      - Fetch auth.privy.io headers; extract CSP frame-ancestors
+      - Test framing auth iframe from an untrusted parent under wildcard
+      - Confirm whether the auth modal renders normally
+    severity_estimate: medium
+
+  - id: H_partial_csp_only
+    text: |
+      Production has X-Frame-Options DENY but CSP frame-ancestors is broader (or vice
+      versa). When the two disagree, some browsers fall back to the weaker policy.
+    verification:
+      - Compare X-Frame-Options vs CSP frame-ancestors directives on each host
+      - Note any browser-specific bypass (Safari historically follows weaker policy)
+    severity_estimate: low
+
+mitigation: |
+  Treat every public subdomain that ships the dApp bundle as production. Apply
+  X-Frame-Options: DENY AND CSP frame-ancestors 'none' on all of them — both
+  headers, not one. For dev/staging clones, either gate access behind auth
+  (Authelia/Cloudflare Access) or remove them from public DNS.
+
+evidence_sources:
+  - sessions/$DOMAIN/iframe_trust_matrix.json
+  - sessions/$DOMAIN/clones.json
+  - sessions/$DOMAIN/auth_provider_config.json

@@ -1,0 +1,153 @@
+id: ghost_contract_legacy_approvals
+title: Ghost Contract — Deprecated But Alive + Live User Approvals
+version: 1.0
+class: legacy_surface
+
+# Protocol deprecates an old contract (deploys v2/v3), tells users "use new version",
+# but DOES NOT kill / pause / migrate the old contract. User approvals from years
+# ago remain active. Old contract has any bug → drain primitive years later.
+# Transit Finance May 2026 ($1.88M from 2022-deployed deprecated TRON contract)
+# is canonical. Applies to ANY protocol with multi-version deployments.
+applies_when:
+  any_tag:
+    - multi_version_deploy
+    - protocol_versioning
+    - deprecated_contract
+    - legacy_router
+    - dex_aggregator      # high overlap with arbitrary_call class
+    - bridge              # bridges with abandoned versions
+    - lending             # lending pools with old market list
+    - vault               # vault factories with abandoned strategies
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: transit_finance_tron_ghost_2026_05
+    title: "Transit Finance May 2026 — 2022 TRON contract still alive with live approvals → $1.88M (re-exploit of same 2022 vuln)"
+    platform: incident
+    severity: high
+  - id: dragonfly_2022_legacy_router
+    title: "Multi protocols 2022-2025 — old router versions abandoned but not killed"
+    platform: pattern
+    severity: high
+  - id: compound_v1_legacy_approvals
+    title: "Pre-Compound-v2 markets users approvals (some still active years later) — illustrative class"
+    platform: pattern
+    severity: medium
+
+hypotheses:
+  - id: H_deprecated_contract_not_killed
+    text: |
+      If protocol announced contract X as deprecated but `{contract_x}` still has
+      executable bytecode (not selfdestructed, not paused, not transferred to dead
+      owner), AND has any vulnerability previously known or new, then attacker
+      exploits old contract directly. Mitigation announced ≠ enforced.
+    verification:
+      - Enumerate all historical contract addresses for protocol (docs, audits, GitHub history, etherscan/tronscan/bscscan deploy txs)
+      - For each: eth_getCode (or chain equivalent) — is bytecode present?
+      - Try paused() / killed() / status() — does it return true/dead?
+      - If alive: this contract is in scope despite "deprecated" claim
+    severity_estimate: high
+
+  - id: H_users_still_have_approvals_to_ghost
+    text: |
+      If `{ghost_contract}` had user-facing flows historically and users gave
+      approve() to it, those approvals persist FOREVER (until explicitly revoked).
+      Sample top token holders of major ERC-20s (USDC/USDT/DAI/WETH) on the chain:
+      query `allowance(holder, ghost_contract)`. Non-zero allowances = live attack
+      surface even years after deprecation.
+    verification:
+      - Get top 100-1000 holders of top tokens (USDC, USDT, DAI, WETH on chain)
+      - For each (holder, ghost_contract) pair: call `allowance(holder, ghost_contract)`
+      - Count non-zero approvals
+      - Sum approved amounts (this is the maximum drainable)
+      - Even single whale with 6+ figure approval = High severity finding
+    severity_estimate: critical
+
+  - id: H_ghost_contract_has_arbitrary_call_bug
+    text: |
+      Combine with `dex_aggregator_arbitrary_call` class: if ghost contract has the
+      arbitrary-call bug (was the source of the original exploit, never fully
+      patched on the old version), AND has live approvals, the drain is
+      immediately exploitable. Transit 2026 exactly this.
+    verification:
+      - Apply dex_aggregator_arbitrary_call checks to ghost contract specifically
+      - If bug + live approvals → drain primitive
+      - Severity = sum of vulnerable approvals (potentially > $10M on aged contracts)
+    severity_estimate: critical
+
+  - id: H_multi_chain_deploy_no_pause_consistency
+    text: |
+      Protocols deployed to N chains often pause/upgrade only on some chains
+      (the "active" ones), leaving deprecated versions on smaller chains intact.
+      Transit was on 13+ chains; the TRON-specific deprecated contract was the
+      least-monitored.
+    verification:
+      - For protocol with multi-chain deploys: list all chains
+      - For each chain: identify active vs deprecated contract addresses
+      - Check pause/kill state on each chain
+      - "Smaller" chains (TRON, sonic, fantom, scroll) often skip pause migrations
+    severity_estimate: high
+
+  - id: H_admin_renounced_no_path_to_pause
+    text: |
+      Some protocols call renounceOwnership on the old contract as part of
+      deprecation ("we no longer control it, it's safe"). But renounce = NO ONE
+      can pause/kill it now → permanently exploitable surface. Inverse of
+      `proxy_admin_owner_renounced` — for deprecated contracts, renounce LOCKS
+      the vulnerability in place.
+    verification:
+      - For each ghost contract: read owner() / admin role members
+      - If address(0) / dead address: pause is permanently impossible
+      - This is the WORST outcome — still vulnerable + no remediation path
+    severity_estimate: critical
+
+  - id: H_dapp_frontend_no_revoke_warning
+    text: |
+      Frontend of protocol's dApp doesn't warn users about lingering approvals
+      to deprecated contracts, nor links to revoke.cash. Users assume "deprecated"
+      means safe. Behavioral / UX failure compounds ghost contract risk.
+    verification:
+      - Check dApp UI for "outdated approvals" warning section
+      - Check for revoke flow links
+      - Check changelog / migration docs — does team announce "revoke your approvals to X"?
+      - Composes with `display_vs_reality` threat model
+    severity_estimate: medium
+
+mitigation: |
+  - When deprecating: kill (selfdestruct where possible), pause permanently, and
+    transfer admin to dead address ONLY AFTER pause is set.
+  - Add migration UI flow that automatically prompts users to revoke approvals
+    to deprecated contracts.
+  - Maintain a public "deprecated contracts registry" with revocation instructions
+    per chain.
+  - Periodic scan: query allowance() across top holders, top tokens, all
+    deployed contracts (active + deprecated). Alert on residual surface.
+  - For multi-chain: pause/kill across ALL chains simultaneously, not just active ones.
+  - Bug bounty scope: explicitly include deprecated contracts.
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/all_contracts_history.json
+  - sessions/$DOMAIN/onchain/ghost_contract_state.json
+  - sessions/$DOMAIN/onchain/ghost_contract_allowances.json
+
+autotag_signals:
+  text_in_docs:
+    - "deprecated"
+    - "no longer use"
+    - "migrate to"
+    - "v2 launched"
+    - "v3 launched"
+    - "legacy"
+    - "old version"
+  contract_name_match:
+    - V1
+    - V2
+    - Old
+    - Legacy
+    - Deprecated
+  state_check:
+    - paused: false
+    - killed: false
+    - owner: not_zero_or_dead

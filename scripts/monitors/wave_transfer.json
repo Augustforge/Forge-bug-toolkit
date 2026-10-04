@@ -1,0 +1,38 @@
+{
+  "_doc": "Hack-wave transfer ledger. A fresh hack of class X opens a WEEK-window where sibling protocols of the same family are likely still unpatched (feedback_protocol_family_bug_transfer, cross-TARGET). Each entry: what hit, its taxonomy class, the sibling-family grep patterns to run NOW, the detector to point at candidates, and the hot-window days. Add an entry on every notable hack; wave_transfer.py flags entries still inside their window and prints the sibling-hunt actions. Dates are ISO; window_days default 7.",
+  "waves": [
+    {
+      "hack": "Bonzo Lend / Supra oracle",
+      "date": "2026-07-11",
+      "loss_usd": 9050000,
+      "class": "14.12",
+      "class_name": "BLS/pairing verifier trusts result without input validation (zero-sig / identity)",
+      "sibling_family": "any protocol consuming a Supra price feed on ANY chain; any oracle/bridge/DVN using aggregated BLS committee signatures",
+      "grep_patterns": ["Supra", "SupraOracle", "pullOracle", "ISupra", "bls", "pairing", "ecPairing", "aggregateVerify"],
+      "detector": "bls_pairing_zero_input.py / verifier_binding_audit.py",
+      "window_days": 14
+    },
+    {
+      "hack": "Aztec Payments + Hinkal (twin ZK proof-binding)",
+      "date": "2026-07-02",
+      "loss_usd": 2980000,
+      "class": "14.13",
+      "class_name": "proof verified but not bound to recipient/action (authorization-binding gap)",
+      "sibling_family": "privacy pools + legacy/deprecated ZK bridges: Tornado-likes, Railgun, Nocturne-likes, Aztec forks, any escapeHatch/prooflessDeposit path",
+      "grep_patterns": ["escapeHatch", "prooflessDeposit", "proofless", "transact(", "legacyWithdraw", "claim(", "processExit"],
+      "detector": "verifier_binding_audit.py",
+      "window_days": 10
+    },
+    {
+      "hack": "Summer.fi Lazy Summer (NAV stale-inclusion)",
+      "date": "2026-07-06",
+      "loss_usd": 6040000,
+      "class": "3.15",
+      "class_name": "paused/capped/offboarded component still counted in active NAV/accounting",
+      "sibling_family": "ERC-4626 fleet/multi-strategy vaults with offboardable sub-vaults/arks/markets: Yearn-v3 allocators, Morpho MetaMorpho, Euler EVK, any allocator summing weighted sub-vaults",
+      "grep_patterns": ["FleetCommander", "Ark", "totalAssets", "nav", "offboard", "removeStrategy", "setCap", "queue"],
+      "detector": "orphaned_tvl_enum.py --src (Cat 3.15 mode)",
+      "window_days": 10
+    }
+  ]
+}

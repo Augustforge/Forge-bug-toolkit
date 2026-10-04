@@ -1,0 +1,68 @@
+# Reference schema for threat_models/*.yaml
+# Hybrid: declarative tags for matching + optional executable_checks for grep/cast
+# Files prefixed with _ (this one, _INDEX.md) are loaders-skipped.
+
+# Required fields
+name: <human-readable name, 3-8 words>
+id: <slug, snake_case, must match filename without .yaml>
+
+# Required: matching predicate (when does this model apply to target?)
+applies_when:
+  protocol_class: [<bridge | amm | lending | restaking | vault | governance | mpc-custody | aggregator | yield | perps | oracle | dex | other>]
+  tags: [<arbitrary semantic tags, lower_snake_case>]    # e.g. [tss, mpc, gg20, paillier]
+  chain: [any | <chain-or-list>]                          # ["any"] OR ["evm", "solana"]
+
+# Optional: negative match (E8) — model NOT applies if any of these match
+negative_match:
+  tags: []                                                # e.g. [tss_lib_patched_v0_71_0]
+  protocol_class: []
+
+# Required: declarative pillars
+assumption_violated: |
+  One-paragraph plain-prose statement of what protocol silently assumes.
+  This is the LENS — must be sharp, not generic.
+
+actors:
+  - role: <name>
+    capability: <legitimate action they can take>
+
+attack_vector: |
+  One-paragraph plain-prose statement of how violation gets weaponized.
+
+# Required: testable hypothesis templates (Claude instantiates per-target)
+hypotheses_template:
+  - "If <condition observable in target>, then check <specific code element>"
+  - "If <condition>, then verify <thing>"
+  - "..."
+
+# Required: expected severity range (E3 — used for quick vs deep mode filtering)
+severity_floor: low                                       # min severity if hypothesis confirms
+severity_ceiling: critical                                # max possible severity
+
+# Required: refs
+case_studies: [<id from threat_intel.md>, ...]            # e.g. [thorchain_2026, multichain_2023]
+related_checklists: [<path/to/checklist.md>, ...]
+related_prompts: [<path/to/prompt.md>, ...]
+
+# Optional but recommended: validation tracking (E7)
+last_validated_against:
+  date: <YYYY-MM-DD>
+  targets: [<target name where used>, ...]
+  outcome: <validated | refuted | inconclusive>
+
+# Optional: executable checks (hybrid block)
+# apply.py runs these if target supports it (has source files)
+executable_checks:
+  - type: grep                                            # grep | regex_count | cast_call
+    pattern: <regex>
+    languages: [go, rust, sol, ts]                        # file types to scan
+    severity_if_match: <low | medium | high>
+    note: <human-readable description what this hits>
+  - type: regex_count
+    pattern: <regex>
+    languages: [rust]
+    threshold_below: 128                                  # flag if count < threshold
+    severity_if_match: high
+  - type: cast_call                                       # stub — emits manual instruction
+    cmd: "cast code $TARGET_ADDRESS | grep tss"
+    note: "Run manually if target on-chain"

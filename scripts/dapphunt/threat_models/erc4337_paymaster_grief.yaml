@@ -1,0 +1,153 @@
+id: erc4337_paymaster_grief
+title: ERC-4337 Paymaster Grief / Sponsorship Abuse / Bundler Censorship
+version: 1.0
+class: account_abstraction
+
+# ERC-4337 (Account Abstraction) introduces UserOperations, EntryPoint, Bundlers,
+# Paymasters. Each layer adds surface: paymasters lose money on validation failures,
+# bundlers can censor or extract, EntryPoint storage rules are non-obvious. Growing
+# bounty surface 2025-2026.
+applies_when:
+  any_tag:
+    - erc4337
+    - account_abstraction
+    - paymaster
+    - bundler
+    - userop
+    - smart_account
+    - aa_wallet
+
+severity_ceiling: high
+severity_floor: medium
+
+reference_findings:
+  - id: stackup_paymaster_grief_2024
+    title: "Stackup-style paymaster — invalid sig in validatePaymasterUserOp loses gas without revenue"
+    platform: research
+    severity: high
+  - id: pimlico_paymaster_advisories_2024_2025
+    title: "Multiple paymaster sponsorship abuse via signature replay across chains"
+    platform: advisory
+    severity: high
+  - id: bundler_censorship_demo_2025
+    title: "Bundler operators selectively dropping UserOps from non-paying senders"
+    platform: research
+    severity: medium
+
+hypotheses:
+  - id: H_paymaster_sig_replay_cross_chain
+    text: |
+      If `{paymaster_contract}` signs sponsorship over UserOp hash without including
+      chainId or paymaster nonce in the signed domain, then a captured sponsorship
+      sig can be replayed on a different chain where the paymaster is also deployed
+      → drain of paymaster deposit across chains.
+    verification:
+      - Inspect paymaster's validatePaymasterUserOp logic
+      - Find what's hashed for the sponsorship signature
+      - chainId missing from hash → cross-chain replay
+      - validUntil/validAfter binding strict?
+    severity_estimate: high
+
+  - id: H_paymaster_validation_storage_violation
+    text: |
+      ERC-4337 EntryPoint enforces strict storage access rules in validation phase:
+      paymaster can only access self-storage during validatePaymasterUserOp. If
+      paymaster accesses sender storage or external contract storage during
+      validation, bundlers reject. But: some bundlers don't enforce → paymaster
+      with cross-contract reads during validation can be exploited by triggering
+      state changes between simulation and execution.
+    verification:
+      - Read paymaster validatePaymasterUserOp source
+      - Catalog all SLOAD operations during validation phase
+      - SLOADs to non-self storage → rule violation
+      - Test with stripped/permissive bundler (catch real exposure)
+    severity_estimate: medium
+
+  - id: H_unlimited_sponsorship_no_per_user_cap
+    text: |
+      If `{paymaster_contract}` sponsors UserOps without per-sender rate-limit
+      (e.g., max N sponsored ops per day per sender), a malicious user can drain
+      paymaster deposit via mass-spam. Combined with cheap UserOp construction →
+      effective DoS on paymaster's runway.
+    verification:
+      - Test sending 100 UserOps from same sender in quick succession
+      - Observe whether paymaster sponsors all
+      - Measure paymaster deposit decay rate
+      - If no cap → drain primitive
+    severity_estimate: high
+
+  - id: H_paymaster_postOp_overcharges_user
+    text: |
+      Paymaster's postOp can overcharge the user — if `actualGasCost` calculation
+      uses different gas price than what user submitted, paymaster keeps the
+      delta. Some paymasters charge users in token equivalent — token price
+      manipulation in postOp = silent fee extraction.
+    verification:
+      - Read postOp source
+      - Identify gas price source vs actualGasCost computation
+      - Check token price oracle for in-postOp lookups
+      - Manipulation surface in postOp = vulnerability
+    severity_estimate: medium
+
+  - id: H_userop_signature_aggregation_replay
+    text: |
+      If `{smart_account_contract}` uses signature aggregator (BLS or similar),
+      aggregator may accept stale signatures across nonce updates if aggregation
+      window is too lax. Replay primitive against aggregator-using accounts.
+    verification:
+      - Identify smart account's aggregator (if any)
+      - Read aggregator validation logic
+      - Check nonce/timestamp inclusion in aggregated proof
+    severity_estimate: medium
+
+  - id: H_bundler_censorship_targeted
+    text: |
+      Public bundlers (Pimlico, StackUp, Alchemy) may censor UserOps from specific
+      senders based on AML / heuristics. If the target dApp depends on a single
+      bundler endpoint, censorship = denial of service for blacklisted users.
+      Resolution: forced inclusion via EntryPoint direct call (if user has ETH).
+    verification:
+      - Identify which bundler endpoint(s) dApp uses
+      - Test with a known blacklisted address (Tornado-tagged, OFAC SDN)
+      - Check if dApp has fallback bundler or direct EntryPoint path
+    severity_estimate: medium
+
+  - id: H_paymaster_deposit_griefable_via_invalid_ops
+    text: |
+      If `{paymaster_contract}` validates user signatures inside its own logic
+      (instead of relying on smart account's validateUserOp), then a UserOp with
+      valid paymaster sig but INVALID smart account sig still drains paymaster's
+      pre-charge (because EntryPoint reverts AFTER paymaster validation succeeds
+      but BEFORE postOp refund).
+    verification:
+      - Read paymaster validation; does it check sender's signature?
+      - If yes, paymaster decoupled from EntryPoint's validate path
+      - Send UserOp with valid paymaster sig + invalid sender sig
+      - Observe whether paymaster deposit decreases
+    severity_estimate: high
+
+mitigation: |
+  - Paymaster signatures MUST include chainId + EntryPoint address + paymaster nonce
+    in hash; bind to specific UserOp via hash of (userOp without paymasterSig).
+  - Validation phase: strictly self-storage only; use OpenZeppelin's ERC4337 helpers.
+  - Per-sender rate limits in validatePaymasterUserOp (mapping(address => uint) ops_today).
+  - postOp gas accounting must use EntryPoint-provided gasCost, not recomputed.
+  - dApps should support multiple bundler endpoints + direct EntryPoint fallback.
+  - Don't duplicate signature validation between paymaster and account — let
+    EntryPoint flow do its job.
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/paymaster_contracts.json
+  - sessions/$DOMAIN/onchain/entrypoint_logs.json
+  - sessions/$DOMAIN/userop_bundler_endpoints.json
+
+autotag_signals:
+  function_signature_match:
+    - "validatePaymasterUserOp"
+    - "validateUserOp"
+    - "postOp"
+    - "handleOps"
+    - "simulateValidation"
+  contract_address_match:
+    - "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"   # EntryPoint v0.6 canonical
+    - "0x0000000071727De22E5E9d8BAf0edAc6f37da032"   # EntryPoint v0.7 canonical

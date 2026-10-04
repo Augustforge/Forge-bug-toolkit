@@ -1,0 +1,67 @@
+id: tokenlist_cdn_takeover
+title: TokenList / Indexer CDN Trust → Phantom Tokens & Balances
+version: 1.0
+class: data_supply_chain
+
+applies_when:
+  any_tag:
+    - fetches_tokenlist
+    - uses_subgraph_hosted
+    - uses_third_party_indexer
+
+severity_ceiling: high
+severity_floor: medium
+
+reference_findings:
+  - id: uniswap_tokenlist_class
+    title: "dApps blindly trust tokens.uniswap.org or third-party tokenlist URLs"
+    severity: medium
+
+  - id: subgraph_indexer_class
+    title: "Hardcoded Goldsky/Subgraph hosted endpoint → DNS takeover = fake balances/positions"
+    severity: high
+
+hypotheses:
+  - id: H_tokenlist_fetched_without_sri_or_pin
+    text: |
+      dApp fetches a tokenlist JSON from a third-party URL (CDN or hosted aggregator)
+      without Subresource Integrity (SRI) or local pinning. If the CDN is compromised
+      or DNS-hijacked, attacker-controlled tokens (with chosen logos and decimals) get
+      injected into the dApp's token selector.
+    verification:
+      - Grep bundle for `tokenlist`, `tokens.uniswap.org`, `tokenlists.org`, `.tokenlist.json`
+      - Check for SRI attribute on fetch (rare for JSON)
+      - If hardcoded URL, identify domain owner and whether it's part of the bounty scope
+    severity_estimate: medium
+
+  - id: H_indexer_endpoint_hardcoded
+    text: |
+      Subgraph or indexer endpoint (Goldsky / The Graph hosted / Allium) is hardcoded
+      in bundle. If attacker can DNS-takeover or compromise the indexer host, the dApp
+      reads fake balances/positions — user sees phantom funds and may try to swap or
+      borrow against them, executing unintended on-chain actions.
+    verification:
+      - Grep bundle for `*.thegraph.com`, `*.goldsky.com`, `subgraph`, `indexer`
+      - For each endpoint, check ownership / DNS provider / takeover surface
+      - Test: replace endpoint with attacker-controlled fake; observe whether dApp accepts the response without sanity-check
+    severity_estimate: high
+
+  - id: H_no_chain_sanity_for_indexed_data
+    text: |
+      Indexer-returned data (balances/prices) is not cross-checked against direct RPC
+      reads. Trust in indexer is total.
+    verification:
+      - Trace one balance/price flow in the bundle: does it ever call RPC `balanceOf` directly?
+      - If indexer is sole source, this is a single point of failure
+    severity_estimate: medium
+
+mitigation: |
+  Pin tokenlist JSON hashes (SRI-style) in the build. Sanity-check critical balances
+  with direct RPC reads at submission time. Maintain a fallback indexer and compare
+  responses. Treat third-party indexer responses as untrusted, especially for
+  off-chain → on-chain action gating.
+
+evidence_sources:
+  - sessions/$DOMAIN/tokenlist_audit.json
+  - sessions/$DOMAIN/indexer_endpoints.json
+  - sessions/$DOMAIN/bundle-main.js

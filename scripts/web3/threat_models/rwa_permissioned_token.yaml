@@ -1,0 +1,106 @@
+name: RWA / Permissioned-Token Compliance & Partition Gaps
+id: rwa_permissioned_token
+
+applies_when:
+  # NOTE: no protocol_class gate on purpose — apply.py matching is AND across the
+  # fields it declares, and an RWA token is classified all over the map (token /
+  # security_token / stablecoin / vault / other). The tags below are specific
+  # enough to carry the match alone (they don't fire on non-RWA targets). The T1
+  # trigger instructs Claude to set one of these tags in _tags.txt on sight.
+  protocol_class: []
+  tags: [rwa, permissioned_token, erc1400, erc3643, t_rex, erc1404, erc6065, erc7943, tokenized_asset, security_token, compliance_token, kyc_token, partition_token, real_world_asset]
+  chain: [any]
+
+negative_match:
+  tags: []
+  protocol_class: []
+
+assumption_violated: |
+  A tokenized real-world asset (bond, T-bill, fiat-stablecoin, real-estate, credit) is a
+  MAPPING LAYER over an off-chain truth (SPV/custodian/legal wrapper), not the source of
+  truth. The contract silently assumes: (1) every value-moving path enforces the SAME
+  compliance/whitelist/freeze check; (2) per-partition balances and the global total stay
+  in sync; (3) the bound compliance engine actually validates (not a DefaultCompliance
+  stub); (4) NAV/redemption pricing and dividend distribution can't be gamed by a flashloan
+  or a single bid/ask price; (5) regulator powers (forcedTransfer/recovery/freeze) are
+  scoped and signature-gated; (6) the on-chain receipt and the off-chain settlement of a
+  redeem/DVP either both happen or neither. "The code permits far more than users assume."
+
+actors:
+  - role: sanctioned_holder
+    capability: blacklisted/non-KYC address seeking any unguarded balance-changing path
+  - role: malicious_operator
+    capability: partition-scoped operator/controller reaching cross-partition or forced moves
+  - role: flashloan_actor
+    capability: borrows shares at a distribution/snapshot block to redirect yield
+  - role: arbitrageur
+    capability: cycles mint/redeem against a single NAV price or stale credential window
+
+attack_vector: |
+  Find the sibling value-moving path (mint/burn/forcedTransfer/batchTransfer/operatorRedeem/
+  redeem) that does NOT call canTransfer/isVerified/canTransact -> move value as a restricted
+  address (24.3). Drift Σ partitions vs total via non-atomic _transferByPartition or stale
+  1-indexed partition removal (24.1); migrate locked->liquid partition by naming the
+  destination partition in operatorData (24.2). Check the bound compliance is not the
+  unconditional DefaultCompliance stub, and that a poisoned/late-reading module can't DoS or
+  misvalidate transfers (24.4). Arb a single-price NAV (mint=ask should differ from redeem=bid)
+  and flashloan-redirect a real-time balanceOf dividend (24.5). Abuse an under-scoped controller
+  / a recovery path that bypasses keyHasPurpose / a no-timelock revocation; flag forcedTransfer
+  with no document-hash audit trail (24.6). Trade on an expired KYC claim or a stale Merkle
+  blacklist window, or DoS a holder via AND-logic claim conjunction (24.7). Desync the off-chain
+  leg: redeem flips state before settlement confirms, DVP legs aren't atomic, one physical asset
+  double-issued with no uniqueness oracle (24.8).
+
+hypotheses_template:
+  - "Enumerate EVERY function that changes a balance (transfer/transferFrom/mint/burn/forcedTransfer/batchTransfer/operator*Redeem/redeem). If ANY lacks a compliance call (canTransfer/isVerified/canTransact/tokensToValidate), then a restricted address moves value through it = compliance-hook coverage gap (Cat 24.3)"
+  - "If the token is ERC-1400 multi-partition, then check invariant Σ totalSupplyByPartition == totalSupply AND Σ balanceOfByPartition[user][*] == balanceOf[user]; non-atomic _transferByPartition or 1-indexed _removeTokenFromPartition breaks it = partition accounting desync (Cat 24.1)"
+  - "If _getDestinationPartition derives the destination from operatorData/calldata, then an operator migrates locked->liquid partition with no re-validation = lock-up bypass (Cat 24.2)"
+  - "If ERC-3643, then verify the bound _tokenCompliance is ModularCompliance NOT DefaultCompliance (canTransfer()==true stub), and that _modules[] add/remove is authorized and transferred() is called BEFORE balance mutation = compliance-engine disabled/poisoned (Cat 24.4)"
+  - "If mint and redeem read the SAME price variable, then arbitrage the missing bid/ask spread; if dividend/coupon/rent distribution reads balanceOf live (no snapshot/balanceOfAt), then flashloan-redirect the payout (Cat 24.5)"
+  - "If controller/forcedTransfer power is not partition-scoped, or recovery bypasses keyHasPurpose, or revocation has no timelock, or forcedTransfer emits no documentHash, then privileged-transfer/recovery abuse (Cat 24.6)"
+  - "If isVerified() checks claims without an expiry/validTo comparison, or blacklist is a Merkle root with no freshness bound, or claim logic is ALL-topics conjunction, then credential staleness / claim-DoS (Cat 24.7)"
+  - "If redeem() flips on-chain state before the off-chain settlement confirms (no two-step Request->Process->Finalize), or DVP legs aren't atomic, or a real-world identifier has no uniqueness check at mint, then off-chain/on-chain settlement desync / double-issuance (Cat 24.8)"
+
+severity_floor: medium
+severity_ceiling: critical
+
+case_studies: [slowmist_rwa_practices_2026]   # framework-derived (ERC-1400 21 VPs / ERC-3643 7 VPs / ERC-6065/7943); no single live exploit — class-level
+related_checklists: []
+related_prompts: []
+
+last_validated_against:
+  date: 2026-06-18
+  targets: []
+  outcome: inconclusive
+
+executable_checks:
+  - type: grep
+    pattern: "ERC1400|IERC1400|ERC3643|T-REX|TREX|IModularCompliance|IIdentityRegistry|ERC1404|ERC7943"
+    languages: [sol]
+    severity_if_match: low
+    note: "permissioned/RWA token family marker — gate signal, run rwa_permissioned_token.py (Cat 24)"
+  - type: grep
+    pattern: "_transferByPartition|_removeTokenFromPartition|totalSupplyByPartition|balanceOfByPartition"
+    languages: [sol]
+    severity_if_match: high
+    note: "partition accounting — verify Σ partitions == total, atomic src/dst, 1-indexed removal (Cat 24.1)"
+  - type: grep
+    pattern: "operatorData|_getDestinationPartition"
+    languages: [sol]
+    severity_if_match: high
+    note: "destination partition from calldata = lock-up bypass surface (Cat 24.2)"
+  - type: grep
+    pattern: "DefaultCompliance|bindModule|addModule|_modules"
+    languages: [sol]
+    severity_if_match: high
+    note: "compliance engine — DefaultCompliance stub / module poisoning / late transferred() (Cat 24.4)"
+  - type: grep
+    pattern: "forcedTransfer|controllerTransfer|recoveryAddress|recover\\("
+    languages: [sol]
+    severity_if_match: high
+    note: "privileged transfer/recovery — scope, keyHasPurpose bypass, revocation timelock, audit-trail hash (Cat 24.6)"
+  - type: grep
+    pattern: "isVerified|canTransfer|canTransact|tokensToValidate"
+    languages: [sol]
+    severity_if_match: medium
+    note: "compliance hook — confirm EVERY balance-changing path calls it + claim expiry enforced (Cat 24.3/24.7)"

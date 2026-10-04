@@ -1,0 +1,150 @@
+id: dex_aggregator_arbitrary_call
+title: DEX Aggregator / Router Arbitrary External Call → User Approval Drain
+version: 1.0
+class: aggregator_router_safety
+
+# DEX aggregator / router / swap contracts accept (address target, bytes data) for
+# routing through arbitrary DEX. If target NOT whitelisted, attacker calls
+# transferFrom on victims' approved tokens directly. Transit Finance (2022 + 2026),
+# SwapNet (2026), Aperture Finance (2026), Dexible — all share this pattern.
+applies_when:
+  any_tag:
+    - dex_aggregator
+    - swap_router
+    - meta_swap
+    - cross_dex_router
+    - 1inch_clone
+    - paraswap_clone
+    - openocean_clone
+    - bungee_clone
+    - rango_clone
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: transit_swap_2022_10
+    title: "Transit Swap 2022 — callBytes accepted arbitrary target → $23-29M drained from user approvals"
+    platform: incident
+    severity: critical
+  - id: transit_finance_tron_2026_05
+    title: "Transit Finance May 2026 — same 2022 bug on deprecated TRON contract → $1.88M"
+    platform: incident
+    severity: high
+  - id: swapnet_2026_01
+    title: "SwapNet — arbitrary-call exploit (BlockSec analyzed) → $13.4M; called 'largest non-phishing approval attack'"
+    platform: incident
+    severity: critical
+  - id: aperture_finance_2026_01
+    title: "Aperture Finance — arbitrary-call exploit → $3.67M"
+    platform: incident
+    severity: high
+  - id: dexible_2023_02
+    title: "Dexible — same pattern, $2M drained"
+    platform: incident
+    severity: high
+
+hypotheses:
+  - id: H_external_call_no_target_whitelist
+    text: |
+      If `{aggregator_contract}` exposes a function like `swap(address target,
+      bytes calldata data)` or `executeCall(address, bytes)` or `multicall` and
+      `target` is NOT validated against an internal whitelist of approved DEX
+      addresses, then a calldata-crafted call can invoke `transferFrom(victim,
+      attacker, amount)` on any ERC-20 the victim has approved.
+    verification:
+      - Decompile contract (or read source); enumerate external functions
+      - Identify all (address, bytes) parameter pairs
+      - For each: trace whether target is whitelist-checked before delegatecall/call
+      - If no whitelist: confirm vulnerable
+      - Reproducer: foundry fork → spoof victim approve → craft malicious target+data → drain
+    severity_estimate: critical
+
+  - id: H_calldata_passes_to_inner_call_unsanitized
+    text: |
+      Even with target whitelist, if the `data` argument is forwarded to the
+      target WITHOUT sanitization of function selectors (e.g., dApp allows ANY
+      call to whitelisted DEX), attacker invokes the DEX's own `transferFrom`
+      indirectly. Whitelist must combine with selector allowlist.
+    verification:
+      - Identify target whitelist (e.g., DEX contracts list)
+      - Check if data is restricted to specific selectors (swap-only) or any call
+      - If any call → drain primitive exists; target whitelist insufficient
+    severity_estimate: critical
+
+  - id: H_router_proxy_passes_data_to_bridge
+    text: |
+      Transit Swap 2022 specific: Router proxy contract forwards `data` to bridge
+      contract without content validation (only length check). Bridge then invokes
+      attacker-controlled `transferFrom`. Composability gap between router and bridge.
+    verification:
+      - Map contract architecture: router → bridge → underlying DEX
+      - At each hop, check what's validated (content vs just length)
+      - Length-only checks → drain primitive
+    severity_estimate: critical
+
+  - id: H_swap_callback_drain
+    text: |
+      Some aggregators use swap callback pattern (Uniswap V3 style) for
+      flash-swaps. If `swapCallback` doesn't authenticate `msg.sender == pool`,
+      attacker calls callback directly with crafted parameters, triggering
+      `transferFrom` on user funds in the calling context.
+    verification:
+      - Find all swapCallback / uniswapV3SwapCallback / pancakeSwapCallback
+      - Check msg.sender validation against trusted pool list
+      - If missing → direct call from attacker drains
+    severity_estimate: critical
+
+  - id: H_recipient_address_attacker_controlled
+    text: |
+      If `{aggregator_contract}` accepts `recipient` parameter for swap output
+      and doesn't bind it to `msg.sender` AND user pre-approved tokens to the
+      aggregator, attacker sets recipient=themselves on a swap "for" victim,
+      effectively redirecting output.
+    verification:
+      - Read swap function signature
+      - Check if recipient is hardcoded to msg.sender or parameter
+      - If parameter: check if there's a permit/sig binding recipient
+      - If neither → drain via recipient redirection
+    severity_estimate: high
+
+  - id: H_pre_swap_balance_check_skipped
+    text: |
+      Swap functions that don't verify (pre-balance - post-balance) of victim's
+      pre-approved token, just transfer requested amount → if attacker sets
+      amount > victim's swap intent and uses the same victim's approval, drain.
+    verification:
+      - Read swap implementation
+      - Look for balance delta checks
+      - If missing: confirm amount parameter is unbounded vs approval
+    severity_estimate: high
+
+mitigation: |
+  - Whitelist ALL target addresses (with periodic governance review).
+  - Whitelist function selectors per target (selector allowlist + target allowlist).
+  - Hardcode recipient = msg.sender wherever possible.
+  - For callbacks (Uniswap V3 style): authenticate msg.sender against trusted pools.
+  - Balance delta checks: ensure transferFrom(victim, ..., amount) never exceeds intended swap.
+  - Use Permit2 for one-time per-swap allowances instead of unlimited router approvals.
+  - Audit composability gaps: router → bridge → underlying — every hop revalidates.
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/router_contracts.json
+  - sessions/$DOMAIN/onchain/router_external_call_signatures.json
+  - sessions/$DOMAIN/onchain/router_target_whitelist.json
+
+autotag_signals:
+  function_signature_match:
+    - "callBytes"
+    - "executeCall"
+    - "swap.*\\(.*address.*bytes"
+    - "multicall"
+    - "aggregateCall"
+    - "uniswapV3SwapCallback"
+    - "swapCallback"
+  contract_name_match:
+    - Router
+    - Aggregator
+    - SwapRouter
+    - MetaSwap
+    - Bungee

@@ -1,0 +1,101 @@
+id: inverted_external_input
+title: Inverted External-Input Trust — Every External Source Lies to the Maximum
+version: 1.0
+class: data_supply_chain
+
+# Companion threat model to wallet_metadata_xss_check.py's _SOURCE_FAMILIES (same
+# family ids used below via `source_family:` on each hypothesis, same co-location
+# engine — display sink OR decision sink). wallet_metadata itself already has its
+# own dedicated python check; this model covers the three families that generalize
+# past it: a lying contract-wallet, a lying RPC/indexer, a lying tokenlist.
+applies_when:
+  any_tag:
+    - fetches_tokenlist
+    - uses_third_party_indexer
+    - eip1271
+    - smart_contract_wallet
+    - account_abstraction
+    - erc4337
+
+severity_ceiling: critical
+severity_floor: medium
+
+reference_findings:
+  - id: wallet_metadata_xss_sibling_class
+    title: "WalletConnect/EIP-6963 metadata rendered without sanitization — sibling class, same co-location engine (wallet_metadata_xss_check.py)"
+    platform: dapphunt
+    target_class: dApp
+    severity: high
+
+hypotheses:
+  - id: H_eip1271_liar_gates_decision
+    source_family: eip1271_liar
+    sink_kind: decision
+    text: |
+      If a connected contract-wallet's isValidSignature() unconditionally returns the
+      EIP-1271 magic value (0x1626ba7e) regardless of the actual signature payload, and
+      the dApp gates an access/authorization/withdrawal decision on that return value
+      without any independent check, then a malicious contract-wallet can authorize ANY
+      action as itself with zero real signing — the "signature" verified nothing.
+    detection_signal: |
+      isValidSignature / 0x1626ba7e co-located (within ~10 lines) with a decision sink
+      that compares the result to true/the magic value before granting access.
+    verification:
+      - Grep bundle for isValidSignature / 0x1626ba7e usage
+      - Trace what the dApp DOES with the return value — display only, or gate an action?
+      - Deploy a test contract-wallet that always returns 0x1626ba7e; confirm the dApp accepts it
+      - Confirm no secondary check (nonce/session/replay guard) exists downstream
+    severity_estimate: critical
+
+  - id: H_indexer_response_drives_decision
+    source_family: malicious_rpc_indexer
+    sink_kind: decision
+    text: |
+      If eth_call / subgraph / third-party indexer response data (balance, price,
+      allowance) feeds a decision sink (balance-gated conditional, borrow/collateral
+      math) without a direct RPC cross-check, then a compromised or DNS-hijacked
+      indexer can make the dApp believe the user holds funds/allowance it does not
+      have, triggering over-borrow, phantom withdrawal attempts, or bypassed gating.
+    detection_signal: |
+      eth_call / subgraph / indexer / .balanceOf( / .allowance( co-located (within
+      ~10 lines) with an `if (balance >= ...)` / `if (allowance ...)` / over-borrow
+      math sink.
+    verification:
+      - Identify which balance/price/allowance values come from an indexer vs direct RPC
+      - Trace whether any value is cross-checked against a direct contract read before the decision
+      - Test with substituted indexer response (inflated fake value); observe whether the dApp's decision logic (button enablement, submitted tx amount) follows the fake value
+    severity_estimate: high
+
+  - id: H_tokenlist_decimals_unverified
+    source_family: malicious_tokenlist
+    sink_kind: decision
+    text: |
+      If a fetched tokenlist's decimals field feeds amount-scaling math (e.g.
+      amount * 10**decimals) without ever reading decimals() from the token contract
+      itself, then a compromised tokenlist CDN/DNS can supply a wrong decimals value
+      and cause the dApp to submit an order/swap/approval off by orders of magnitude —
+      an over-value or under-value primitive against the user or the pool.
+    detection_signal: |
+      tokenlist fetch marker (tokenlist / tokens.uniswap.org / .tokenlist.json)
+      co-located (within ~10 lines) with `decimals` feeding scaling math, and no
+      on-chain decimals() call nearby.
+    verification:
+      - Grep bundle for tokenlist fetch + where `decimals` is read from the returned entry
+      - Confirm whether the dApp ALSO calls the token contract's decimals() anywhere for the same token
+      - Test with a tokenlist serving an attacker-chosen decimals value for a known token; observe whether the computed swap/transfer amount reflects the fake decimals
+    severity_estimate: high
+
+mitigation: |
+  - EIP-1271: never trust isValidSignature() alone for high-value actions; require a
+    session-bound nonce/replay guard and treat the smart-wallet's own signing claim as
+    UNTRUSTED input, not proof.
+  - Indexer/RPC: cross-check any balance/price/allowance used in a DECISION (not just
+    display) against a direct RPC read (eth_call to the canonical contract) before acting on it.
+  - Tokenlist: always read decimals() (and ideally symbol()/name()) directly from the
+    token contract for any value that feeds math; treat tokenlist metadata as display-only.
+
+evidence_sources:
+  - sessions/$DOMAIN/wallet_metadata_xss.json
+  - sessions/$DOMAIN/wallet_integration_audit.json
+  - sessions/$DOMAIN/indexer_endpoints.json
+  - sessions/$DOMAIN/tokenlist_audit.json

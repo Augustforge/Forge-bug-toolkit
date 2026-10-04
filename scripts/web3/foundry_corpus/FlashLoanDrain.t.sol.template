@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Flash-loan amplified exploit
+// Pattern: borrow huge → manipulate state in same tx → drain protocol → repay loan.
+
+import "forge-std/Test.sol";
+
+interface IFlashLoanReceiver {
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external returns (bool);
+}
+
+interface IAaveV3Pool {
+    function flashLoanSimple(
+        address receiver,
+        address asset,
+        uint256 amount,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
+}
+
+interface IERC20 {
+    function approve(address, uint256) external returns (bool);
+    function balanceOf(address) external view returns (uint256);
+    function transfer(address, uint256) external returns (bool);
+}
+
+contract FlashLoanAttacker is IFlashLoanReceiver, Test {
+    address constant AAVE_POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2; // mainnet
+    address constant USDC = address(0); // TODO
+    address constant VULNERABLE = address(0); // TODO
+
+    function attack(uint256 loanAmount) external {
+        IAaveV3Pool(AAVE_POOL).flashLoanSimple(
+            address(this),
+            USDC,
+            loanAmount,
+            "",
+            0
+        );
+    }
+
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address,
+        bytes calldata
+    ) external override returns (bool) {
+        // TODO: exploit logic
+        // - Use loaned capital to manipulate state
+        // - Call vulnerable function
+        // - Extract value
+        // - Approve repayment
+
+        IERC20(asset).approve(AAVE_POOL, amount + premium);
+        return true;
+    }
+}
+
+contract FlashLoanExploitTest is Test {
+    FlashLoanAttacker public attacker;
+    uint256 constant FORK_BLOCK = 0;
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+        attacker = new FlashLoanAttacker();
+    }
+
+    function test_Exploit_FlashLoanDrain() public {
+        uint256 loanAmount = 10_000_000e6; // 10M USDC
+        attacker.attack(loanAmount);
+
+        uint256 finalBalance = IERC20(attacker.USDC()).balanceOf(address(attacker));
+        console.log("Attacker final USDC:", finalBalance);
+
+        // TODO: assert net profit > flash-loan fee + gas
+        assertGt(finalBalance, 0, "No profit extracted");
+    }
+}

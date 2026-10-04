@@ -1,0 +1,125 @@
+name: Fund Liveness — Permanent Freeze via Unreachable / Activity-Gated Exit
+id: fund_liveness_terminal_state
+
+# Web3 render schema (apply.py): assumption_violated / actors / attack_vector /
+# hypotheses_template / case_studies / executable_checks.
+# MIRROR of the extraction models — those ask "can value be pulled OUT improperly?";
+# this asks "can value get STUCK forever?". Distinct from:
+#   - liquidity_locker_privileged_unlock.yaml → owner UNLOCKS others' funds (extraction)
+#   - validator_set_quorum_integrity.yaml      → quorum math (extraction)
+# Here NOBODY can extract — the legitimate exit transition can never fire. On Immunefi/
+# Cantina "permanent freezing of funds" is its own Critical/High class (no theft needed).
+
+applies_when:
+  protocol_class: [ico, crowdsale, dao-fund, vesting, escrow, auction, staking, locker, vault]
+  tags:
+    - ico
+    - crowdsale
+    - dao
+    - dao-fund
+    - vesting
+    - escrow
+    - auction
+    - staking
+    - locker
+    - lifecycle
+    - liveness
+    - custody
+  chain: [any]
+
+assumption_violated: |
+  Phased-lifecycle contracts (ICO/crowdsale, vesting, escrow, auction, DAO-fund, locker)
+  promise that participants can ALWAYS get their value out at the end — refund if the round
+  fails, claim/redeem/collect when it succeeds. The hidden assumption: the state TRANSITION
+  that enables the exit will always be reachable. It breaks when that transition is driven
+  only by an activity that ceases, or can be withheld/blocked by one party:
+
+    1. ACTIVITY-GATED transition: the exit gate (`isReleased`/`isFinalized`/`unlocked`/
+       `distributionReady`) is flipped ONLY inside an `internal` function reachable from a
+       SINGLE path (a deposit/buy/vote). When that activity stops, the contract parks in a
+       non-terminal state and the exit sits dormant — forever.
+    2. UNCALLED finalizer: exit needs `finalize()`/`settle()/advance()` first, but no party
+       is incentivized (or able) to call it.
+    3. DOWNSTREAM-REVERT dependency: the exit's success depends on an external call (child
+       wallet, sub-contract sweep, token transfer) that can permanently revert.
+    4. ADVERSARY-BLOCKABLE: an unbounded loop, force-send balance break, blacklisted
+       recipient, or withheld keeper/oracle/quorum step freezes the exit for everyone.
+
+  HONG ICO 2026 ($2M / 1003 ETH trapped 9 YEARS): `refundMyIcoInvestment()` is gated by
+  `notLocked`; the lock/release state advances only inside `internal tryToLockFund()`, which
+  is called solely from `createTokenProxy()` (token purchases). The ICO missed its minimum,
+  buying stopped in 2016, the state machine never reached its terminal "released" branch, and
+  every original investor's refund was dormant until a white-hat re-activated the path in 2026.
+
+actors:
+  - role: passive_participant
+    capability: Deposited/contributed legitimately; entitled to exit but the enabling transition never fires → capital frozen with no malicious actor at all.
+  - role: griefer
+    capability: Can cheaply force the exit transition to revert (force-send, blacklist, dust-bloat, withhold a required cooperative step) → denies exit to all.
+  - role: absent_operator
+    capability: The only address that could call the finalizer/driver is gone, unincentivized, or the path is dead code post-launch.
+
+attack_vector: |
+  - **Activity-gated gate**: find each exit (`withdraw/refund/claim/redeem/collect/unlock/
+    exit/release/harvest`). Identify the state var or modifier guarding it. Find ALL writers
+    of that var. If the only writer is `internal`/`private` reachable from a single
+    deposit/buy/vote path, or `onlyOwner`/quorum-gated → the gate can stop flipping. (HONG)
+  - **Time + fresh-call trap**: terminal/release branch requires `now >= deadline` AND a
+    fresh call to the driver. After the deadline nobody makes that call → never advances.
+  - **Downstream revert**: the exit performs an external call before paying out (sub-wallet
+    pull, sweep, ERC-20 transfer to a possibly-reverting/blacklisting token) → one failure
+    bricks the whole exit. Check the order of state-change vs external call too.
+  - **Unbounded/forced DoS on the exit transition**: loop over a user-growable array inside
+    finalize/distribute; `address(this).balance` equality broken by force-send; recipient
+    that reverts on receive.
+  Severity note: a DESIGNED pause/guardian/emergency-freeze that the program documents is
+  NOT a findable bug (see scope filter). FINDABLE = a logic/structural flaw that makes the
+  legitimate exit unreachable without anyone intending it.
+
+hypotheses_template:
+  - "List EVERY exit (withdraw/refund/claim/redeem/collect/unlock/exit). For each: which state-var/modifier gates it and WHO writes it? If the only writer is `internal`/`onlyOwner`/quorum and it is reachable from a single liveness path → the exit can freeze forever (HONG class)."
+  - "Does the terminal/release branch of the state machine require `now >= deadline` AND a fresh call of a driver function? Who makes that call after the deadline? If nobody — the fund is parked forever."
+  - "Does the exit make an external call (sub-wallet pull / sweep / ERC-20 transfer) BEFORE payout? Can it revert permanently (blacklist/insolvent child/revert-on-receive) → bricks the exit for everyone?"
+  - "Is there an unbounded loop over a user-growable array in finalize/distribute, or a dependency on `address(this).balance` equality (broken by force-send)? = DoS-to-freeze."
+  - "Is the gate a DOCUMENTED pause/guardian (designed-trust, OOS) or a STRUCTURAL reachability bug (findable)? Run through the scope filter before severity."
+
+severity_floor: medium
+severity_ceiling: critical
+
+# NOTE: case_studies must be a flat list of strings (apply.py render() joins them).
+# Quote each entry — a ':' inside makes YAML parse it as a dict.
+case_studies:
+  - "hong-2026-whitehat — FINDABLE liveness: refundMyIcoInvestment gated by notLocked; lock state advances only in internal tryToLockFund() called from createTokenProxy(); ICO missed min, buying stopped 2016 -> $2M/1003 ETH frozen 9y until white-hat re-activated exit"
+  - "generic-uncalled-finalizer — vesting/auction where claim needs settle()/finalize() nobody is incentivized to call"
+  - "dos-to-freeze-sibling — unbounded loop / force-send / blacklisted-recipient bricks a distribute/withdraw transition for all users"
+
+related_checklists:
+  - scripts/web3/checklists/hypothesis/fund_liveness_reachability.md
+
+related_prompts:
+  - scripts/web3/prompts/worst_admin_action.md
+
+related_scanners:
+  - scripts/web3/advanced/state_machine_analyzer.py
+
+last_validated_against:
+  date: 2026-06-03
+  targets: [scripts/web3/advanced/fixtures/hong_clean.sol]
+  outcome: detector_confirmed_on_hong
+
+executable_checks:
+  - type: grep
+    pattern: "function\\s+(withdraw|refund|claim|redeem|collect|unlock|exit|cashout|release|harvest)\\w*\\s*\\("
+    languages: [sol]
+    severity_if_match: low
+    note: "Exit surface — for each, trace the gate var and ALL its writers (run state_machine_analyzer.py)."
+  - type: grep
+    pattern: "function\\s+\\w+\\s*\\([^)]*\\)\\s*internal"
+    languages: [sol]
+    severity_if_match: low
+    note: "Internal state drivers — if one of these is the ONLY writer of an exit gate and is reachable from a single activity, the exit can freeze (HONG)."
+  - type: grep
+    pattern: "(isReleased|isFinalized|isLocked|isFundLocked|distributionReady|isDistributionReady|finalized|settled|matured)"
+    languages: [sol]
+    severity_if_match: medium
+    note: "Lifecycle gate flags — verify every flag that guards an exit has a writer reachable independent of ceasing activity / a single privileged actor."

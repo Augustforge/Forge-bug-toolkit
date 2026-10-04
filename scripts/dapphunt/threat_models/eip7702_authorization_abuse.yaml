@@ -1,0 +1,139 @@
+id: eip7702_authorization_abuse
+title: EIP-7702 SetCode Authorization Abuse → EOA Compromise via Single Signature
+version: 1.0
+class: wallet_signing_standards
+
+# EIP-7702 (Pectra hardfork, May 2025) allows EOAs to delegate temporary code to a
+# contract via a signed authorization. One careless signature → EOA-as-contract until
+# next type-0x04 tx. New attack surface; tooling immature; documentation sparse.
+applies_when:
+  any_tag:
+    - eip7702
+    - pectra
+    - account_delegation
+    - set_code
+    - smart_eoa
+    - aa_eoa
+    - delegate_signing
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: pectra_mainnet_2025_05_07
+    title: "Pectra activated on mainnet — EIP-7702 live"
+    platform: ethereum
+    severity: info
+  - id: eip7702_phishing_demos_2025
+    title: "Researcher demos (Cyfrin, OpenZeppelin) of one-signature wallet hijack via 7702"
+    platform: research
+    severity: critical
+  - id: scam_wallet_drainers_q3_2025
+    title: "Drainer kits added 7702 vector — single signature → permanent EOA control"
+    platform: incident
+    severity: critical
+
+hypotheses:
+  - id: H_dapp_requests_blind_7702_authorization
+    text: |
+      If `{dapp_domain}` requests an EIP-7702 authorization signature (type 0x04
+      delegation) without (a) displaying clear human-readable intent in the wallet
+      UI, (b) verifying the delegate contract matches a known-safe template, or
+      (c) using nonce binding to current EOA state, then a phisher can craft an
+      authorization that delegates the EOA to an attacker-controlled "drain" contract.
+      User signs once, attacker calls any function as the EOA.
+    verification:
+      - Capture signing request in Playwright mock provider
+      - Check if request is type 0x04 (EIP-7702 authorization list)
+      - Decode authorization: (chainId, address, nonce, y_parity, r, s)
+      - Verify chainId binding (chainId=0 = any chain replay)
+      - Check delegate address — is it a published well-known template?
+    severity_estimate: critical
+
+  - id: H_chainid_zero_cross_chain_replay
+    text: |
+      EIP-7702 allows chainId=0 in authorization → signed delegation valid on ANY
+      EVM chain. If `{dapp_domain}` signs with chainId=0 (or chainId not bound to
+      wallet's current chain) → cross-chain replay → attacker activates delegation
+      on a chain where victim has assets.
+    verification:
+      - Inspect signing request payload — chainId field
+      - chainId=0 → Critical replay risk
+      - chainId hardcoded to wrong chain (e.g., 1 mainnet but user is on L2) → drain primitive
+    severity_estimate: critical
+
+  - id: H_delegate_contract_storage_pattern
+    text: |
+      If delegate contract uses `address(this)` for storage access (`mapping(address
+      => uint) public balances;` keyed by `address(this)`), then storage slot lookups
+      are performed at the EOA's address — not the delegate's. Different delegations
+      across time may write to the same slots causing corruption / hijack.
+    verification:
+      - Read delegate contract source
+      - Look for `address(this)` references — these resolve to EOA when 7702 active
+      - Check storage layout — does it assume singleton contract identity?
+      - If yes → state interactions broken / hijackable
+    severity_estimate: high
+
+  - id: H_no_revocation_path
+    text: |
+      EIP-7702 authorizations persist until a new type 0x04 tx (or zero-address
+      delegation) overwrites. If `{dapp_domain}` doesn't surface "revoke delegation"
+      UI, users have no clear path to unauthorize → permanent compromise on phish.
+    verification:
+      - Search dapp for revocation UI text ("revoke delegation", "remove 7702", etc.)
+      - Check wallet provider integration — does it expose `wallet_revokeDelegation`?
+      - Test revocation flow with burner wallet
+    severity_estimate: medium
+
+  - id: H_authorization_nonce_reuse
+    text: |
+      If `{wallet_or_dapp}` doesn't increment EOA nonce after a 7702 authorization,
+      an attacker who observed the signature can replay it on a different chain
+      (with same chainId) or use the EOA's interaction nonce to forge follow-up txs.
+    verification:
+      - Inspect authorization nonce field
+      - Verify wallet enforces nonce > current EOA nonce
+      - Test replay attempt with captured authorization
+    severity_estimate: high
+
+  - id: H_dangerous_default_delegate_template
+    text: |
+      If wallet provider sets a "default 7702 delegate" (e.g., to enable batch tx
+      or social recovery), and that delegate has any priv-elevating function
+      callable by msg.sender == address(this), users are exposed to entire delegate's
+      attack surface by default.
+    verification:
+      - Identify wallet's default delegate (Privy, Magic, Web3Auth, Coinbase Wallet smart wallet)
+      - Read delegate source — list of callable functions when called as EOA
+      - Check for arbitrary call / exec / setKey functions
+    severity_estimate: critical
+
+mitigation: |
+  - Wallets MUST display the delegate contract's name + verified-template badge
+    in the signing UI. No bare address.
+  - Wallets MUST default chainId to the connected chain; reject chainId=0 unless
+    user explicitly confirms intent.
+  - Wallets MUST surface active 7702 delegations and provide one-click revocation.
+  - dApps requesting 7702 should use audited templates (e.g., MetaMask Smart EOA,
+    Argent X templates, EIP-7702 reference impl).
+  - Delegate contracts MUST NOT use `address(this)` for storage slots; use msg.sender
+    or explicit owner pointer instead.
+  - Period revocation reminders for users with active delegations.
+
+evidence_sources:
+  - sessions/$DOMAIN/wallet_signing_capture.json
+  - sessions/$DOMAIN/eip7702_authorization_payloads.json
+  - sessions/$DOMAIN/eip7702_delegate_contracts.json
+
+autotag_signals:
+  text_in_bundle:
+    - "type:.*0x04"
+    - "SignedAuthorization"
+    - "AuthorizationList"
+    - "authorizeDelegate"
+    - "eip7702"
+  function_signature_match:
+    - "executeWithAuth"
+    - "signedTransaction"
+    - "delegateTo"

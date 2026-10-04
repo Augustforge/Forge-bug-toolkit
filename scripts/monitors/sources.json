@@ -1,0 +1,55 @@
+{
+  "twitter_nitter_instances": [
+    "https://nitter.net",
+    "https://nitter.poast.org",
+    "https://nitter.privacydev.net",
+    "https://nitter.unixfox.eu",
+    "https://nitter.tiekoetter.com"
+  ],
+  "twitter_accounts": [
+    "blockaid_",
+    "samczsun",
+    "peckshield",
+    "certikofficial",
+    "immunefi",
+    "SlowMist_Team",
+    "zachxbt",
+    "officer_cia",
+    "trailofbits",
+    "OpenZeppelin",
+    "ConsenSysAudits",
+    "RealRekt",
+    "ProjectDiscovery",
+    "Hacken_io"
+  ],
+  "github_orgs_watchlist": [
+    "trailofbits",
+    "crytic",
+    "ConsenSys",
+    "OpenZeppelin",
+    "Cyfrin",
+    "code-423n4",
+    "sherlock-protocol",
+    "spearbit"
+  ],
+  "telegram_channels": [
+    "trailofbits_news",
+    "immunefi_news",
+    "DefiyieldRekt",
+    "DeFiSecurityAlerts",
+    "hacken_club",
+    "PeckShieldAlert"
+  ],
+  "telegram_rss_bridge": "https://rsshub.app/telegram/channel",
+  "github_trending_url": "https://api.gitterapp.com/repositories?language=solidity&since={since}",
+  "defillama_protocols": "https://api.llama.fi/protocols",
+  "custody_contract_watchlist": "contracts.watchlist.json",
+  "research_blogs_rss": [
+    {"name": "rekt.news", "url": "https://rekt.news/feed/"},
+    {"name": "Blockaid", "url": "https://www.blockaid.io/blog/rss.xml"},
+    {"name": "Trail of Bits", "url": "https://blog.trailofbits.com/feed.xml"},
+    {"name": "OpenZeppelin", "url": "https://blog.openzeppelin.com/rss.xml"},
+    {"name": "ConsenSys Diligence", "url": "https://consensys.io/diligence/blog/rss.xml"},
+    {"name": "PortSwigger Research", "url": "https://portswigger.net/research/rss"}
+  ]
+}

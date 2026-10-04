@@ -1,0 +1,100 @@
+name: Liquidity Locker / Vesting / Escrow — Privileged Unlock of Third-Party Funds
+id: liquidity_locker_privileged_unlock
+
+# Web3 render schema (apply.py): assumption_violated / actors / attack_vector /
+# hypotheses_template / case_studies / executable_checks.
+# Distinct from compromised_admin_unconstrained_mint (token mint) and from
+# ghost_contract_legacy_approvals (router approvals): here the contract HOLDS the
+# assets directly in pooled custody, and a privileged param mutation unlocks them.
+
+applies_when:
+  protocol_class: [locker, vesting, escrow, launchpad, staking]
+  tags:
+    - locker
+    - liquidity_lock
+    - lp_lock
+    - vesting
+    - escrow
+    - launchpad
+    - stake_lock
+    - custody
+  chain: [any]
+
+assumption_violated: |
+  Liquidity lockers / vesting / escrow contracts promise that deposited assets are
+  LOCKED until a time condition — users (and the projects whose LP is locked) trust
+  the lock is immutable. The hidden assumption: the contract owner CANNOT change the
+  lock terms of already-created deposits, and CANNOT withdraw third-party assets. That
+  assumption breaks when lock parameters (fee, unlock timestamp) are owner-mutable
+  without a timelock, or when an emergency/migrate path moves pooled custody out. A
+  single privileged action then releases EVERYONE's funds. DxSale/DxLock 2026:
+  setFee(1 wei) + lock expiration backdated to 68s after Unix epoch → 1,400 LPs drained.
+
+  POOLED CUSTODY AMPLIFIER: if one contract holds the LP of many projects, the blast
+  radius of one privileged action is ALL deposits at once (Nakamoto coefficient 1 when
+  owner is an EOA).
+
+actors:
+  - role: locker_owner
+    capability: Holds owner/admin role; legitimately sets global params like fee. Weaponized to mutate existing locks or withdraw pooled custody.
+  - role: inherited_or_compromised_owner
+    capability: Ownership silently transferred (DxSale Aug 2025, hopped ~80 wallets) or key compromised; gains the same unconstrained power over others' locked funds.
+
+attack_vector: |
+  - **Owner-mutable lock params**: setFee / setLockTime / setUnlockTime / extendLock are
+    onlyOwner and affect ALREADY-created locks. Owner sets fee→0 and/or unlockTime→past,
+    making every locked position withdrawable. (DxSale 2026)
+  - **Backdated timestamp**: unlock checks `block.timestamp >= unlockTime` but unlockTime
+    is owner-settable to a past/epoch value (DxSale: 68s after epoch).
+  - **Privileged emergency/migrate**: emergencyWithdraw / adminWithdraw / rescue / migrate
+    moves locked LP/tokens out, bypassing per-user lock records.
+  - **Pooled custody**: one contract holds many projects' LP → a single privileged call
+    drains all of them (1,400 LPs in DxSale).
+  Note: Decurity reported this exact class on DxLock in 2023 ($500 bounty; "fix" = raise
+  fee = configurational, bypassed via setFee in 2026) → the class is findable AND reportable.
+
+hypotheses_template:
+  - "Find owner-only setters of lock parameters (setFee/setLockTime/setUnlockTime/extendLock/relock). Do they affect ALREADY created locks? Is there a TimelockController/multisig? Without it the owner mutates others' locks → release."
+  - "Is there emergencyWithdraw/adminWithdraw/rescue/migrate reachable by the owner that moves locked assets bypassing the per-user lock record? = drain pooled custody."
+  - "Is unlockTime validated as future at creation? Can the owner set it to the past/epoch? (DxSale: 68s after epoch)."
+  - "Custody pooled (one contract holds LP of many projects) or isolated? Pooled = blast radius = ALL deposits; quantify total locked value."
+  - "owner() = EOA / Safe(threshold) / Timelock / renounced? Read OwnershipTransferred history — silent transfer + dead project + live TVL = DxSale precondition (leading indicator)."
+
+severity_floor: medium
+severity_ceiling: critical
+
+case_studies:
+  - "dxsale-2026 — DxLock privileged setFee + backdated lock timestamp → $7.3M / 1,400 LPs (28-29.05.2026)"
+  - "dxsale-decurity-2023 — unlockToken without timestamp check, ~$5.2M averted, $500 bounty; fee-raise fix bypassed in 2026 (proves class findable)"
+  - "unicrypt-teamfinance-class — generic LP-locker privileged-unlock / migration"
+
+related_checklists:
+  - scripts/web3/checklists/hypothesis/liquidity_locker_privilege.md
+
+related_prompts:
+  - scripts/web3/prompts/worst_admin_action.md
+
+related_scanners:
+  - scripts/web3/hypothesis/liquidity_locker_privilege_scanner.py
+
+last_validated_against:
+  date: 2026-05-31
+  targets: []
+  outcome: pending_first_use
+
+executable_checks:
+  - type: grep
+    pattern: "function\\s+set\\w*[Ff]ee\\s*\\("
+    languages: [sol]
+    severity_if_match: high
+    note: "Owner-mutable fee setter — DxSale used setFee(1 wei) to neutralize lock cost. Verify timelock + that it can't void existing locks."
+  - type: grep
+    pattern: "function\\s+(set\\w*(Lock|Unlock)?Time|extendLock|relock|setUnlock\\w*)\\s*\\("
+    languages: [sol]
+    severity_if_match: high
+    note: "Owner-mutable lock/unlock timestamp — can owner backdate existing locks to release them?"
+  - type: grep
+    pattern: "function\\s+(emergency\\w*[Ww]ithdraw|adminWithdraw|rescue\\w*|sweep\\w*|migrate\\w*)\\s*\\("
+    languages: [sol]
+    severity_if_match: high
+    note: "Privileged withdraw/migrate — may move other users' locked assets out of pooled custody."

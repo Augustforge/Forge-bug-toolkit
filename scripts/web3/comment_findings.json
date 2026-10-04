@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "file": "..\\..\\..\\sessions\\alchemix-v3\\v3\\src\\strategies\\SFraxETHStrategy.sol",
+      "comments_total": 3,
+      "findings": [
+        {
+          "line": 67,
+          "comment_type": "natspec_line",
+          "text": "@dev This is an oracle-independent downside guard against pathological quotes or severe frxETH depegs.",
+          "signals": [
+            "edge_case",
+            "natspec_dev",
+            "depeg_or_economic",
+            "oracle_concern"
+          ],
+          "matches": [
+            "pathological",
+            "@dev This is an oracle-independent downside guard against pathological quotes or",
+            "depeg",
+            "oracle"
+          ],
+          "nearby_code": "  67:     /// @dev This is an oracle-independent downside guard against pathological quotes or severe frxETH depegs.\n  68:     function setMinFrxEthOutBps(uint256 newMinFrxEthOutBps) external onlyOwner {\n  69:         require(newMinFrxEthOutBps <= 10_000, \"Invalid min frxETH out bps\");\n  70:         minFrxEthOutBps = newMinFrxEthOutBps;\n  71:         emit MinFrxEthOutBpsUpdated(newMinFrxEthOutBps);\n  72:     }\n  73: \n  74:     function _deallocate(uint256, bytes memory) internal pure override returns (uint256) {",
+          "priority": 6
+        },
+        {
+          "line": 66,
+          "comment_type": "natspec_line",
+          "text": "@notice Updates the minimum raw frxETH output floor enforced after swap-based allocations.",
+          "signals": [
+            "natspec_notice"
+          ],
+          "matches": [
+            "@notice Updates the minimum raw frxETH output floor enforced after swap-based al"
+          ],
+          "nearby_code": "  66:     /// @notice Updates the minimum raw frxETH output floor enforced after swap-based allocations.\n  67:     /// @dev This is an oracle-independent downside guard against pathological quotes or severe frxETH depegs.\n  68:     function setMinFrxEthOutBps(uint256 newMinFrxEthOutBps) external onlyOwner {\n  69:         require(newMinFrxEthOutBps <= 10_000, \"Invalid min frxETH out bps\");\n  70:         minFrxEthOutBps = newMinFrxEthOutBps;\n  71:         emit MinFrxEthOutBpsUpdated(newMinFrxEthOutBps);\n  72:     }\n  73: ",
+          "priority": 1
+        }
+      ]
+    }
+  ]
+}

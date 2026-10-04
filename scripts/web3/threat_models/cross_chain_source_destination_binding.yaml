@@ -1,0 +1,102 @@
+name: Cross-Chain Source-Destination Amount Binding Gap
+id: cross_chain_source_destination_binding
+
+applies_when:
+  protocol_class: [bridge, cross-chain-amm, wrapped-asset, mpc-custody]
+  tags: [bridge, cross-chain, notary, attested-payload, layerzero, wormhole, axelar, ccip, pbaas]
+  chain: [any]
+
+negative_match:
+  tags: [bridge_amount_conservation_verified_post_2026, formally_verified_source_dest_invariant]
+
+assumption_violated: |
+  Bridge that cryptographically verifies a cross-chain message payload (signatures
+  + Merkle proof + hash binding) thereby verifies the **semantic invariant** that
+  the burned/locked source amount equals or exceeds the destination payout amount.
+  Protocol silently assumes "valid signatures over payload" == "valid economic
+  values inside payload". In reality these are two different properties — cryptographic
+  integrity proves authorship, not conservation.
+
+actors:
+  - role: external_attacker
+    capability: Can submit any serialized transfer blob if the cryptographic envelope is valid (sigs + Merkle + hash)
+  - role: malicious_payload_constructor
+    capability: On the source chain creates a CCE/VAA/message with adversarially crafted amount fields (tiny input, huge output) before attestation
+  - role: notary_set
+    capability: Signs state roots / message hashes, verifies cryptographic integrity, **does not verify semantic invariants** of payload contents
+
+attack_vector: |
+  Attacker creates a source-chain export/message with inputs = ε (minimum amount to prevent zero-check failures) and outputs = $X (target reserve). Honest notaries
+  sign the state root / VAA hash because **the protocol does not require them to
+  validate semantic conservation** — only integrity. Destination chain receives
+  a cryptographically-valid payload, passes all verification gates (sig recovery,
+  Merkle inclusion, hash binding), then decodes the payload and pays out the declared
+  amounts from reserves. Single tx drain. Variants: Verus 2026 (CCE source-amount gap),
+  Wormhole 2022 (uninitialized signatureSet account trusted as valid attestation),
+  Nomad 2022 (default `0x00` merkle root accepted as confirmed message).
+
+hypotheses_template:
+  - "If a bridge has an entry function (`submitImports|receiveMessage|claimMessage|relayMessage|completeTransfer|process`) that after signature/proof verification calls _mint/_release/_transfer with amount from the payload, look for an explicit `require/assert/revert` linking the incoming `amount` to a verified source-chain field (burned_amount, locked_amount, fee_paid). Absence = critical gap."
+  - "If the notary/guardian set verifies only the state root hash (and not payload contents), look on the destination chain for a **second** semantic check: `require(sum(payouts) <= sum(verifiedSourceTotals))`. If there is none — the bridge relies on trust that notaries semantically validated, which they do not do."
+  - "If the bridge upgrade history touched the verification layer, check whether a regression was introduced: was there amount-field validation in the pre-upgrade version, and was it removed/refactored in the new one? Diff `git log --all -- <verifier-contract>`."
+  - "If the protocol uses a sentinel value (0x00, MAX_UINT, empty bytes) for a 'trusted' state, look for code paths where this sentinel can be set accidentally (Nomad 2022 class). Grep `default|init|reset|0x00.*trusted`."
+  - "If the bridge has a `signatureSet`-like attestation account (Solana-style), check that the creation path for this account validates authorship through a legitimate guardian-signing flow (Wormhole 2022 class). Merely 'account exists' != 'account legitimate'."
+  - "If an N-of-M threshold notary scheme and the threshold is low (e.g., 5/9 Ronin, 8/15 Verus), consider the operational threat model: are operators independent entities? Geographic distribution? Single org infrastructure? Low threshold + non-independence = single point of failure under the bonded-actor model."
+
+severity_floor: high
+severity_ceiling: critical
+
+case_studies:
+  - verus-2026-source-amount-forge
+  - wormhole-2022-signature-bypass
+  - nomad-2022-merkle-root-init
+  - ronin-2022-validator-compromise
+  - multichain-2023-key-leak
+
+related_checklists:
+  - scripts/web3/checklists/specialized/bridge.md
+  - scripts/web3/checklists/bridge.md
+  - scripts/web3/checklists/hypothesis/cross_chain_drift.md
+
+related_prompts:
+  - scripts/web3/prompts/bridge_message_forge.md
+  - scripts/web3/prompts/relayer_censors.md
+  - scripts/web3/prompts/validator_extracts.md
+
+last_validated_against:
+  date: 2026-05-19
+  targets: []
+  outcome: pending_first_use
+
+# Sunset clause (self-improvement loop closure):
+# If class accuracy <30% over 5 hunts → re-enter learning_paths/bridges.md milestone 3 (toy bug).
+# Tracking source: sessions/_methodology/calibration_log.jsonl with class tag "bridge-cross-chain".
+# Quarterly review: sessions/_methodology/gap_review.md.
+
+executable_checks:
+  - type: grep
+    pattern: "function\\s+(submitImports|receiveMessage|claimMessage|relayMessage|completeTransfer|completeTransferWithPayload|process|executeMessage|deliver|finalizeTransfer)"
+    languages: [sol, vy]
+    severity_if_match: medium
+    note: "Surface bridge entry functions — manually verify each has source-amount conservation check linking payload amount to verified source-chain field. Operational tool: scripts/web3/bridge_tests/source_amount_grep.sh"
+  - type: grep
+    pattern: "function\\s+(SubmitImports|ReceiveMessage|ClaimMessage|RelayMessage|CompleteTransfer|Process|ExecuteMessage|Deliver|FinalizeTransfer)"
+    languages: [go, rust]
+    severity_if_match: medium
+    note: "Bridge entry functions Go/Rust naming convention"
+  - type: grep
+    pattern: "(signature_set|signatureSet|guardian_set|guardianSet|notary_set|notarySet).*account|@account"
+    languages: [rust, sol]
+    severity_if_match: medium
+    note: "Account-based attestation (Solana / Anchor pattern) — manually verify creation path is validated (Wormhole 2022 class)"
+  - type: grep
+    pattern: "require\\s*\\(\\s*(merkleRoot|messageHash|stateRoot)\\s*[=!]=\\s*(0x00|bytes32\\(0\\)|0)"
+    languages: [sol]
+    severity_if_match: high
+    note: "Sentinel zero value treated as trusted state — Nomad 2022 class. Critical if found in bridge process/verify function."
+  - type: regex_count
+    pattern: "require\\s*\\(\\s*\\w+\\s*(<=|>=|==).*verifiedPayload|require.*sum.*locked.*paid|assert.*sum.*burned.*minted"
+    languages: [sol, vy]
+    threshold_below: 1
+    severity_if_match: high
+    note: "Bridge contract without explicit source-amount conservation assertion — strong indicator of Verus 2026 class gap. Manual review priority."

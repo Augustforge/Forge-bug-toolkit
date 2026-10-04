@@ -1,0 +1,144 @@
+id: bridge_admin_compromise_chain
+title: Cross-Chain Bridge Admin / Validator Compromise → Wrapped Token Drain
+version: 1.0
+class: bridge_security
+
+# Pattern: cross-chain bridges with admin functions on either side (mint authority,
+# validator-set updates, message-verification keys). Echo, Ronin, Multichain, Nomad,
+# Harmony Horizon all follow this archetype with varying degrees.
+applies_when:
+  any_tag:
+    - bridge
+    - cross_chain
+    - layerzero_integration
+    - wormhole_integration
+    - ccip_integration
+    - hyperlane_integration
+    - custom_bridge
+    - mpc_bridge
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: ronin_2022_03
+    title: "Ronin Bridge — 5/9 validators compromised → $625M"
+    platform: incident
+    severity: critical
+  - id: multichain_2023_07
+    title: "Multichain — MPC admin key loss → $130M"
+    platform: incident
+    severity: critical
+  - id: harmony_horizon_2022_06
+    title: "Harmony Horizon — 2/5 multisig phish → $100M"
+    platform: incident
+    severity: critical
+  - id: nomad_2022_08
+    title: "Nomad — root hash misconfig → $190M (replay drain)"
+    platform: incident
+    severity: critical
+  - id: echo_monad_2026_05_19
+    title: "Echo Protocol — admin key + unconstrained mint pattern"
+    platform: incident
+    severity: critical
+
+hypotheses:
+  - id: H_validator_set_below_threshold
+    text: |
+      If `{bridge_contract}` validator set threshold (signers required to approve
+      cross-chain message) is ≤5 with any signers under unverified OPSEC, the
+      bridge is one phishing campaign from full drain. Threshold should scale
+      with TVL: TVL >$100M → ≥5/8, TVL >$1B → ≥7/11 distributed signers.
+    verification:
+      - Read validator set from bridge contract (validators[], threshold)
+      - Cross-reference signer addresses against known multisig participants
+      - Check if validators are publicly attributed (foundations? independent operators?)
+      - Document key rotation history (if any) and last rotation date
+    severity_estimate: critical
+
+  - id: H_mint_authority_separate_from_messaging
+    text: |
+      Strong bridges separate "message verified" from "mint allowed". If
+      `{bridge_contract}` has a single role that both verifies messages AND mints
+      wrapped tokens, key compromise on that role enables direct mint without
+      message verification path.
+    verification:
+      - Map permissions: who can call mint on the wrapped token?
+      - Is it the bridge contract address (verified message path) or also EOA admins?
+      - If admin can mint bypassing message path → Critical chain risk
+    severity_estimate: critical
+
+  - id: H_no_message_replay_protection
+    text: |
+      Across-chain message replay if nonce/domain binding incomplete. Nomad pattern:
+      misconfigured `messages[0x00]` allowed valid root for any message → mass replay.
+      Modern check: every message has unique (srcChain, dstChain, nonce) + replay map.
+    verification:
+      - Read message format used by bridge
+      - Look for replay protection mapping (processed[messageHash] = true)
+      - Initialize trapdoors (does setting trustedRoot to 0 accept anything?)
+    severity_estimate: critical
+
+  - id: H_no_independent_pauser
+    text: |
+      If `{bridge_contract}` pause function requires admin signature (same key being
+      compromised), there is no breaking mechanism. Independent guardian / security
+      council with pause-only authority is mandatory for >$10M bridge.
+    verification:
+      - Find PAUSER_ROLE or pause function
+      - Verify it's separate role from admin/minter
+      - Verify pauser is held by independent multisig / EOA distinct from admin signers
+    severity_estimate: high
+
+  - id: H_inbound_relayer_trusted_unilaterally
+    text: |
+      If `{bridge_contract}` trusts a single off-chain relayer to push messages
+      without on-chain verification (light client, ZK proof, or N-of-M signatures),
+      a relayer compromise = bridge drain.
+    verification:
+      - Identify message-acceptance criteria — light client root? signatures? trusted relayer?
+      - For LayerZero/Wormhole/Hyperlane integrations — check trustedRemote / chainConfig
+      - Trusted-remote misconfiguration is a recurring class
+    severity_estimate: critical
+
+  - id: H_destination_chain_no_supply_audit
+    text: |
+      If `{bridge_contract}` mints wrapped token on destination chain without
+      enforcing `total_wrapped_supply ≤ total_locked_on_source`, then either side
+      compromise enables divergence. Echo pattern: admin mint > locked source.
+    verification:
+      - Look for on-chain supply audit / Proof-of-Reserves mechanism
+      - Check if there are independent monitors auditing supply parity
+      - Document last audit timestamp and methodology
+    severity_estimate: high
+
+mitigation: |
+  - Distributed multisig threshold scaled to TVL (≥5/8 for $100M+).
+  - Separate roles: message verifier ≠ minter ≠ admin ≠ pauser.
+  - Independent guardian with pause-only authority and distinct OPSEC.
+  - Hardware wallet / HSM for any production signing role.
+  - Periodic supply parity audit on-chain with circuit breaker on divergence.
+  - Replay protection mapping per (src, dst, nonce) — battle-tested.
+  - Light client / ZK proof for cross-chain message verification over trusted relayer.
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/bridge_validator_set.json
+  - sessions/$DOMAIN/onchain/bridge_roles.json
+  - sessions/$DOMAIN/onchain/bridge_message_format.json
+  - sessions/$DOMAIN/onchain/bridge_supply_parity.json
+
+autotag_signals:
+  contract_name_match:
+    - Bridge
+    - CrossChain
+    - Gateway
+    - Tunnel
+    - Portal
+    - Endpoint
+  function_signature_match:
+    - "send.*Message"
+    - "receive.*Message"
+    - "lzReceive"
+    - "ccipReceive"
+    - "completeBridge"
+    - "claimTokens"

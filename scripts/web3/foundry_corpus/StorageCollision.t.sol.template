@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Proxy upgrade storage layout collision.
+// Demonstrates how V2 implementation may corrupt V1 state if storage shifted.
+
+import "forge-std/Test.sol";
+
+interface IProxy {
+    function upgradeTo(address) external;
+    function admin() external view returns (address);
+}
+
+// Hypothetical V1 layout:
+// slot 0: address owner
+// slot 1: uint256 totalSupply
+// slot 2: mapping(address => uint256) balances
+
+// Hypothetical V2 layout (BROKEN — inserted at slot 0):
+// slot 0: address newField  // <- collides with V1's owner
+// slot 1: address owner      // <- shifts
+// slot 2: uint256 totalSupply
+
+contract StorageCollisionExploit is Test {
+    address constant PROXY = address(0); // TODO
+    uint256 constant FORK_BLOCK = 0;
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+    }
+
+    function test_Exploit_StorageCollision() public {
+        // Read storage slot 0 before upgrade
+        bytes32 slot0Before = vm.load(PROXY, bytes32(uint256(0)));
+        console.log("Slot 0 before:");
+        console.logBytes32(slot0Before);
+
+        // TODO: simulate upgrade (if attacker can trigger)
+        // For verification: read same slot AFTER upgrade
+        bytes32 slot0After = vm.load(PROXY, bytes32(uint256(0)));
+        console.log("Slot 0 after:");
+        console.logBytes32(slot0After);
+
+        // If slot 0 was "owner" but now holds different data → collision
+        assertEq(slot0Before, slot0After, "Storage drifted between V1 and V2");
+    }
+}

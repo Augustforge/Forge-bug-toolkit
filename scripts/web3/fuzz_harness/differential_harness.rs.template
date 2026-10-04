@@ -1,0 +1,82 @@
+// differential_harness.rs.template — T8 Differential / Involution Fuzzing harness (LibAFL).
+//
+// Source: asymmetric.re "Finding Fractures" (github.com/asymmetric-research/blogpost-fuzzer-101).
+// Purpose: find inputs where two implementations of ONE wire format disagree (cross-client
+// consensus fork) OR where a single parser violates round-trip soundness.
+//
+// HOW TO USE (fill the 3 TODO slots, then build & run):
+//   1. Add the two crates/parsers to Cargo.toml (impl_a, impl_b).
+//   2. Implement parse_a / parse_b below for your format (SSZ, RLP, borsh, JSON, protobuf…).
+//   3. Drop seed inputs into ./corpus (see corpus_seeds.md), then `cargo run --release`.
+// Requires: Ubuntu 24.04, LLVM-18, Rust nightly, libafl + libafl_bolts in Cargo.toml.
+
+use libafl::prelude::*;
+use libafl_bolts::prelude::*;
+use std::path::PathBuf;
+
+// ---- TODO 1: the two implementations under differential test ------------------------------
+// Return Ok(decoded-bytes-or-canonical-form) / Err on reject. Keep both signatures identical.
+fn parse_a(data: &[u8]) -> Result<Vec<u8>, ()> {
+    // e.g. impl_a::decode(data).map(|v| impl_a::encode(&v)).map_err(|_| ())
+    let _ = data;
+    unimplemented!("plug implementation A (client/crate A) for the target format")
+}
+fn parse_b(data: &[u8]) -> Result<Vec<u8>, ()> {
+    let _ = data;
+    unimplemented!("plug implementation B (client/crate B) for the target format")
+}
+
+// ---- The properties (don't edit) ----------------------------------------------------------
+// P1 DIFFERENTIAL : accept_A(x) == accept_B(x); and when both accept, canonical forms equal.
+// P2 INVOLUTION   : deser(ser(deser(x))) == deser(x)  (round-trip stability of impl A).
+fn differential_oracle(data: &[u8]) {
+    let ra = parse_a(data);
+    let rb = parse_b(data);
+    // P1: same accept/reject decision
+    assert_eq!(
+        ra.is_ok(), rb.is_ok(),
+        "DIVERGENCE: A.accept={} B.accept={} on {:02x?}", ra.is_ok(), rb.is_ok(), data
+    );
+    // P1b: if both accept, canonical (re-encoded) forms must match
+    if let (Ok(a), Ok(b)) = (&ra, &rb) {
+        assert_eq!(a, b, "DIVERGENCE: A and B decoded {:02x?} to different canonical forms", data);
+    }
+    // P2: involution on impl A
+    if let Ok(once) = parse_a(data) {
+        if let Ok(twice) = parse_a(&once) {
+            assert_eq!(once, twice, "INVOLUTION BROKEN on A for {:02x?}", data);
+        }
+    }
+}
+
+pub fn main() {
+    // Minimal LibAFL in-process fuzzer (mirrors blogpost-fuzzer-101 layout).
+    let mut harness = |input: &BytesInput| {
+        differential_oracle(input.target_bytes().as_slice());
+        ExitKind::Ok
+    };
+
+    let mut feedback = ();           // TODO 2 (optional): swap in HitcountsMapObserver + AflMapFeedback
+    let mut objective = CrashFeedback::new(); // assert! failure => crash => saved to ./crashes
+
+    let mut state = StdState::new(
+        StdRand::with_seed(current_nanos()),
+        // TODO 3: point at ./corpus (see corpus_seeds.md) and ./crashes
+        InMemoryCorpus::new(),
+        OnDiskCorpus::new(PathBuf::from("./crashes")).unwrap(),
+        &mut feedback,
+        &mut objective,
+    ).unwrap();
+
+    let mon = SimpleMonitor::new(|s| println!("{s}"));
+    let mut mgr = SimpleEventManager::new(mon);
+    let scheduler = QueueScheduler::new();
+    let mut fuzzer = StdFuzzer::new(scheduler, feedback, objective);
+    let mut executor = InProcessExecutor::new(
+        &mut harness, (), &mut fuzzer, &mut state, &mut mgr,
+    ).expect("executor");
+
+    let mutator = StdScheduledMutator::new(havoc_mutations());
+    let mut stages = tuple_list!(StdMutationalStage::new(mutator));
+    fuzzer.fuzz_loop(&mut stages, &mut executor, &mut state, &mut mgr).expect("fuzz loop");
+}

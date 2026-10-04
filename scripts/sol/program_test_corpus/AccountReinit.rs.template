@@ -1,0 +1,18 @@
+// Test template: account re-initialization attack
+
+use solana_program_test::*;
+use solana_sdk::{signature::Keypair, signer::Signer};
+
+#[tokio::test]
+async fn test_exploit_account_reinit() {
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    // Step 1: initialize account
+    // TODO: call initialize instruction
+    // Step 2: close account (lamports → 0)
+    // TODO: call close instruction
+    // Step 3: re-initialize same address with new state, attacker controlled
+    // TODO: call initialize again — should reject but if init_if_needed or no guard → accept
+    // expect: state reset, attacker now controls authority field
+}

@@ -1,0 +1,17 @@
+# GitHub orgs to monitor for new releases / repos
+# One org name per line. Lines starting with # are ignored.
+#
+# Copy to watchlist.txt and fill in your own targets.
+
+# Web3 / DeFi
+# coinbase
+# uniswap-labs
+# aave
+# compound-finance
+# makerdao
+
+# Web2 with active bug bounty
+# github
+# gitlabhq
+# spotify
+# shopify

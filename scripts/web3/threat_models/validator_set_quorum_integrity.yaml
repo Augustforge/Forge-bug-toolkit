@@ -1,0 +1,159 @@
+name: Validator-Set Quorum Integrity (M-of-N Bridge Signature Math Lens)
+id: validator_set_quorum_integrity
+
+# Complements (does NOT duplicate):
+#   - bridge_admin_compromise_chain.yaml  → threshold SIZE + signer OPSEC (operational)
+#   - cross_chain_source_destination_binding.yaml / attested_amount_trust_gap.yaml
+#                                          → amount conservation (semantic gap)
+# THIS model: the INTERNAL quorum verification LOGIC itself — the code that counts
+# powers, dedups signers, binds checkpoints, and updates the validator set. Those
+# functions are assumed correct by the models above; here we attack the math.
+
+applies_when:
+  protocol_class: [bridge, cross-chain, validator-set]
+  tags:
+    - bridge
+    - gravity
+    - cosmos-bridge
+    - validator-set
+    - threshold-signature
+    - m-of-n
+    - custody
+  chain: [any]
+
+negative_match:
+  tags: [quorum_logic_formally_verified]
+
+assumption_violated: |
+  M-of-N bridges (Gravity/Cosmos, Ronin-style, custom lock-mint) verify that a batch
+  of transfers OR a validator-set update is approved by signers whose CUMULATIVE
+  voting power ≥ threshold (typically 2/3). The protocol assumes this verification is
+  sound. Five recurring LOGIC failures break it — each lets an attacker (or an
+  under-powered/duplicated signer set) pass `checkValidatorSignatures` / `updateValset`
+  for state the honest quorum never approved:
+    1. updateValset accepts a NEW set without re-checking its cumulative power ≥ threshold
+    2. signers are not deduplicated → one validator's signature counted N times to reach quorum
+    3. checkpoint / valset-nonce replay → an old valid (set,batch) re-submitted
+    4. cumulative-power addition overflows / wraps → tiny powers sum to "≥ threshold"
+    5. signature-format asymmetry: EVM side hardened (malleability/ecrecover) but the
+       Cosmos/native side is not → bridge freeze or accepted-on-one-side divergence
+  Plus a value-conservation sibling: fee-on-transfer/deflationary tokens in submitBatch
+  (amount sent ≠ amount credited).
+
+  DEGRADATION sibling (vectors 1-5 attack quorum VERIFICATION — forge/pass approval;
+  this attacks quorum SURVIVAL — punish honest validators down through threshold):
+    6. punishment / jailing / maintainer-removal counts a missed vote/heartbeat and
+       slashes WITHOUT a systemic-failure or quorum-survival guard. An attacker who can
+       make many honest validators miss simultaneously (e.g. an oversized poll exceeding
+       an infra limit — see taxonomy 18.5 — or a partition) triggers mass removal until
+       the live set falls below quorum → chain halt. The verification math can be
+       flawless and the set still dies from the punishment side.
+
+  SCOPE NOTE (read before claiming severity — see feedback_ton_self_destructive_severity):
+  Theft of ≥2/3 of the validators' actual signing keys (Gravity 2026, Ronin 2022) is the
+  protocol's DECLARED trust model, NOT a findable code bug — do not submit it as a vuln
+  unless the program explicitly pays for centralization/key-custody. FINDABLE = a logic
+  flaw that lets a SUB-quorum (or replayed/forged set) pass verification.
+
+actors:
+  - role: under_quorum_signer
+    capability: Controls < threshold real voting power, but exploits dedup/overflow/replay to pass checkValidatorSignatures
+  - role: single_malicious_validator
+    capability: Has ONE valid signing slot; abuses missing dedup to satisfy an N-signer requirement alone
+  - role: external_replayer
+    capability: Holds no key; re-submits a previously-valid (valset, batch, checkpoint) because nonce/checkpoint binding is incomplete
+  - role: malformed_sig_submitter
+    capability: Submits malleable/alt-format signatures that one chain accepts and the other rejects → freeze/divergence
+
+attack_vector: |
+  - **updateValset power gap**: `updateValset(newSet, sigs)` verifies the CURRENT set
+    signed off, but never asserts `sum(newSet.powers) >= threshold`. Quorum signs a
+    routine rotation; attacker substitutes a newSet that is itself under threshold or
+    fully attacker-controlled → subsequent submitBatch trivially passes.
+  - **No signer dedup**: loop sums `powers[i]` for each provided signature without
+    enforcing strictly-increasing/unique addresses → same validator counted repeatedly.
+  - **Checkpoint/nonce replay**: `makeCheckpoint` omits a monotonically-increasing
+    valset nonce or batch nonce, or the processed-batch map is missing → an old signed
+    batch is replayed for a second payout.
+  - **Power overflow**: cumulative power uses an unchecked/narrow integer; crafted powers
+    wrap past the threshold comparison.
+  - **EVM↔native malleability asymmetry**: Gravity.sol hardens ecrecover (s-value, v),
+    the Cosmos module does not (or vice-versa) → a signature accepted on one side and
+    rejected on the other halts the bridge (DoS) or enables one-sided state.
+  - **fee-on-transfer batch**: submitBatch credits `amounts[i]` but the ERC-20 takes a
+    transfer fee → accounting drift / insolvency over many batches.
+  - **punishment without quorum-survival guard** (degradation): the missed-vote / jailing
+    handler removes a validator without checking `failedThisRound < N% of set` or
+    `liveQuorum after removal >= threshold`. Attacker induces infra-wide vote failure
+    (taxonomy 18.5 oversized payload over `max_body_bytes`, or partition) → every honest
+    miss is punished → set drops below quorum → halt. Axelar 2026 (marcohextor, $50K).
+
+hypotheses_template:
+  - "Find `updateValset`/`updateValsetAndSubmitBatch`: after verifying signatures of the CURRENT set, is there a `require(sum(newPowers) >= powerThreshold)` for the NEW set? If not — the quorum can sign a rotation into a sub-threshold/attacker set."
+  - "In `checkValidatorSignatures`: does summing power over signatures deduplicate signers (strictly-increasing addresses / used-map)? Without dedup a single validator satisfies N-of-M alone."
+  - "Is there a monotonic valset nonce AND batch nonce, both inside the checkpoint hash, plus a processed-map? Absence of any link → replay of an old valid batch."
+  - "Cumulative power: type/checked arithmetic? Is overflow possible with crafted powers to pass `>= threshold`?"
+  - "Compare signature validation on the EVM side (Gravity.sol: s ≤ N/2, v ∈ {27,28}) and on the native/Cosmos side. Asymmetry → a malleable sig accepted by one side → freeze/divergence."
+  - "submitBatch with fee-on-transfer token: credited amount == actually-received? Otherwise accounting drift."
+  - "Find the slashing/jailing/remove-maintainer handler: before punishing a missed vote, is there a guard `failedThisRound < N% set` or `liveQuorum after removal >= threshold`? Without it, an attacker triggers an infra-wide voting miss (oversized poll > max_body_bytes, taxonomy 18.5) → mass removal of honest validators → quorum collapse → halt (Axelar 2026)."
+
+severity_floor: medium
+severity_ceiling: critical
+
+# NOTE: case_studies must be a flat list of strings (apply.py render() joins them).
+# Quote each entry — a ':' inside makes YAML parse it as a dict.
+case_studies:
+  - "gravity-2026-key-compromise — scope-boundary: theft of >=2/3 ETH signing keys = DECLARED trust model, NOT findable"
+  - "code4rena-2021-gravity — FINDABLE class: updateValset missing cumulative-power check + fee-on-transfer + Cosmos malleability freeze"
+  - "ronin-2022 — 5/9 validator keys, operational, scope-boundary like Gravity"
+  - "axelar-2026-marcohextor — DEGRADATION vector 6: no quorum-survival guard before punishing missed votes + 1MB max_body_bytes vote-DoS (taxonomy 18.5/18.6) → $1B chain halt, $5k attack cost, $50K bounty"
+
+related_checklists:
+  - scripts/web3/checklists/specialized/gravity_validator.md
+  - scripts/web3/checklists/specialized/bridge.md
+
+related_prompts:
+  - scripts/web3/prompts/bridge_message_forge.md
+  - scripts/web3/prompts/bonded_actor_threat.md
+
+related_scanners:
+  - scripts/web3/specialized/gravity_validator_hunter.py
+
+last_validated_against:
+  date: 2026-05-31
+  targets: []
+  outcome: pending_first_use
+
+# Sunset clause: if class accuracy <30% over 5 hunts → re-enter learning_paths.
+
+executable_checks:
+  - type: grep
+    pattern: "updateValset|updateValsetAndSubmitBatch|_makeCheckpoint|makeCheckpoint"
+    languages: [sol, go, rust]
+    severity_if_match: medium
+    note: "Valset update surface — manually verify cumulative-power re-check on the NEW set"
+  - type: grep
+    pattern: "checkValidatorSignatures|cumulativePower|validatorPower|powerThreshold"
+    languages: [sol, go, rust]
+    severity_if_match: medium
+    note: "Quorum math — verify signer dedup (strictly-increasing addrs) + checked arithmetic"
+  - type: grep
+    pattern: "state_lastValsetNonce|state_lastEventNonce|state_lastBatchNonce|valsetNonce|batchNonce"
+    languages: [sol, go, rust]
+    severity_if_match: low
+    note: "Nonce binding — verify both valset & batch nonces are inside the checkpoint hash"
+  - type: grep
+    pattern: "ecrecover|ECDSA\\.recover|secp256k1|ed25519"
+    languages: [sol, go, rust]
+    severity_if_match: low
+    note: "Signature recovery — compare malleability hardening across EVM vs native side"
+  - type: grep
+    pattern: "submitBatch|transferFrom\\(.*amount|safeTransfer\\(.*amount"
+    languages: [sol]
+    severity_if_match: low
+    note: "Batch payout — verify fee-on-transfer / received-amount reconciliation"
+  - type: grep
+    pattern: "missed|jail|slash|removeValidator|removeMaintainer|deregister|tombstone"
+    languages: [sol, go, rust]
+    severity_if_match: medium
+    note: "Degradation (vector 6) — punishment path; verify systemic-failure / quorum-survival guard before removal (Axelar 18.6). Pair with max_body_bytes / RPC-limit check (18.5)."

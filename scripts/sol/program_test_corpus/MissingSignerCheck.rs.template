@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: UNLICENSED
+// Test template: missing is_signer check exploitation (Wormhole 2022 class)
+//
+// Usage: copy to tests/, replace TARGET_PROGRAM_ID and target instruction.
+
+use anchor_lang::prelude::*;
+use solana_program_test::*;
+use solana_sdk::{signature::Keypair, signer::Signer, transaction::Transaction};
+
+#[tokio::test]
+async fn test_exploit_missing_signer_check() {
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    let victim = Keypair::new();
+    let attacker = Keypair::new();
+
+    // Build instruction passing attacker.pubkey() as the account that should be signer
+    // but is passed as AccountInfo (not Signer)
+    // TODO: fill instruction data
+    let ix = solana_sdk::instruction::Instruction {
+        program_id: TARGET_PROGRAM_ID,
+        accounts: vec![
+            solana_sdk::instruction::AccountMeta::new(victim.pubkey(), false), // pretending victim is signer
+        ],
+        data: vec![/* TODO discriminator + args */],
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        &[ix],
+        Some(&payer.pubkey()),
+        &[&payer, &attacker], // attacker signs, not victim
+        recent_blockhash,
+    );
+
+    let result = banks_client.process_transaction(tx).await;
+    assert!(result.is_ok(), "Expected attack to succeed → BUG: instruction accepted without victim signature");
+}

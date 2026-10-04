@@ -1,0 +1,158 @@
+id: upgradeable_proxy_reinit_collision
+title: Upgradeable Proxy Reinitialization / Storage Collision / Implementation Hijack
+version: 1.0
+class: proxy_safety
+
+# Upgradeable proxies (UUPS, transparent, beacon, custom) introduce class of bugs:
+# implementation-level state hijack, storage layout drift across upgrades, unprotected
+# initializers, and admin-key compromise enabling malicious upgrade. Audius ($1M, 2022),
+# Wormhole ($300M near-miss, 2023), Linksync, others. High severity, scanner-able.
+applies_when:
+  any_tag:
+    - upgradeable_proxy
+    - uups
+    - transparent_proxy
+    - beacon_proxy
+    - erc1967
+    - erc1822_uups
+    - initializable
+    - implementation_contract
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: audius_2022_07
+    title: "Audius — initialize() callable twice → governance hijack → $1.08M drained"
+    platform: incident
+    severity: critical
+  - id: wormhole_uninitialized_implementation_2022_2023
+    title: "Wormhole implementation could be self-destructed (uninitialized init) — $300M near-miss caught by whitehat"
+    platform: incident
+    severity: critical
+  - id: openzeppelin_initializable_v4_8_3_fix
+    title: "OZ Initializable v4.8.3 added reinitializer protection (CVE-2023-26488)"
+    platform: cve
+    severity: high
+  - id: linksync_storage_collision_2023
+    title: "Linksync storage collision after upgrade — privileged role overwritten"
+    platform: incident
+    severity: critical
+
+hypotheses:
+  - id: H_implementation_directly_callable
+    text: |
+      If `{proxy_contract}.implementation()` returns address that itself is callable
+      without going through the proxy (because constructor doesn't `_disableInitializers()`),
+      then an attacker can call `initialize()` on the implementation directly, set
+      themselves as owner, then `selfdestruct` the implementation contract. This
+      bricks the proxy (UUPS without backup admin path) → Wormhole pattern.
+    verification:
+      - Resolve {proxy_contract}'s EIP-1967 implementation slot (0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+      - Get implementation address via raw eth_getStorageAt
+      - Try eth_call to implementation directly: read `owner()` or similar
+      - Verify implementation's `_disableInitializers()` was called in constructor
+      - If not → vulnerable
+    severity_estimate: critical
+
+  - id: H_reinitializer_chain_too_low
+    text: |
+      If `{contract}` uses `reinitializer(N)` for an upgrade but N is set lower than
+      already-recorded `_initialized` value, the reinit succeeds spuriously. OZ
+      Initializable's _initialized version counter must monotonically increase.
+      Common bug: copy-paste reinitializer(2) when previous upgrade already used 2.
+    verification:
+      - Read source for all reinitializer(N) usages
+      - Read storage slot for _initialized: usually slot 0 in OZ Initializable
+      - Compare current value vs proposed N
+      - N ≤ stored _initialized → re-entry possible
+    severity_estimate: high
+
+  - id: H_storage_layout_drift_post_upgrade
+    text: |
+      If a new implementation adds/removes/reorders state variables (or changes
+      variable types' sizes) without preserving slot positions, then existing
+      storage gets corrupted. Particular risks: role mappings at fixed slots,
+      ownership pointers, balance maps.
+    verification:
+      - For target with proxy: locate latest implementation address
+      - Find historical implementations (Etherscan proxy history, events)
+      - Compare storage layouts (forge inspect, manual diff)
+      - Look for: added variables not at end, type changes, removed gaps
+    severity_estimate: critical
+
+  - id: H_admin_can_upgrade_unilaterally
+    text: |
+      If `{proxy_contract}` is UUPS or transparent and `upgradeTo` / `upgradeToAndCall`
+      is callable by a single EOA (or non-timelocked admin), compromised key →
+      malicious implementation → arbitrary state hijack. Composes with `compromised_admin_unconstrained_mint`.
+    verification:
+      - For UUPS: check `_authorizeUpgrade` modifier — onlyOwner / onlyRole?
+      - For transparent: who is ProxyAdmin's owner?
+      - Cross-reference to `role_centralization_scanner.py` output
+      - No timelock + EOA owner → Critical
+    severity_estimate: critical
+
+  - id: H_gap_variable_consumed
+    text: |
+      OZ's `uint256[50] private __gap` exists to absorb new variables across upgrades.
+      If a new implementation declares variables AFTER __gap (instead of consuming
+      slots from gap top), slot positions shift and previous gap reservations break.
+    verification:
+      - Diff storage layouts across implementations
+      - Locate __gap declaration; confirm new vars take from gap top
+      - Length of __gap should decrease monotonically across upgrades
+    severity_estimate: high
+
+  - id: H_implementation_slot_collision_with_state
+    text: |
+      Pre-EIP-1967 proxies used arbitrary slots for implementation pointer. If proxy
+      uses slot 0 (or low slots that conflict with state vars), a write to state can
+      overwrite the implementation pointer → admin hijack.
+    verification:
+      - Inspect proxy bytecode for delegatecall pattern
+      - Identify slot used to store implementation address
+      - If not EIP-1967 (0x360894...) and not in unused range → flag
+    severity_estimate: critical
+
+  - id: H_proxy_admin_owner_renounced
+    text: |
+      If transparent proxy's ProxyAdmin owner has called `renounceOwnership()` (set
+      to address(0)), upgrades are forever blocked. Not directly an attack, but
+      means bug fixes can't ship — flag as governance dead-end.
+    verification:
+      - For transparent proxy: locate ProxyAdmin contract
+      - Read ProxyAdmin.owner()
+      - If address(0) → upgrades disabled (good for security, bad for ops)
+    severity_estimate: info
+
+mitigation: |
+  - Always call `_disableInitializers()` in implementation contract's constructor.
+  - Use reinitializer with strictly increasing version numbers, document them publicly.
+  - Use OpenZeppelin's storage-layout safety tools (`@openzeppelin/upgrades-core`).
+  - For UUPS: `_authorizeUpgrade` MUST require multisig + TimelockController.
+  - For transparent: ProxyAdmin owner MUST be multisig + TimelockController.
+  - Add `__gap` storage reservations and consume from top on upgrades.
+  - Public storage layout diff for every upgrade (link in upgrade proposal).
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/proxy_implementation_history.json
+  - sessions/$DOMAIN/onchain/proxy_storage_layout.json
+  - sessions/$DOMAIN/onchain/proxy_admin_config.json
+
+autotag_signals:
+  bytecode_signature:
+    - "ERC1967Proxy"
+    - "TransparentUpgradeableProxy"
+    - "BeaconProxy"
+    - "delegatecall"
+  function_signature_match:
+    - "upgradeTo"
+    - "upgradeToAndCall"
+    - "_authorizeUpgrade"
+    - "initialize"
+    - "reinitialize"
+  storage_slot_check:
+    - "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"  # EIP-1967 implementation
+    - "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"  # EIP-1967 admin
+    - "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50"  # EIP-1967 beacon

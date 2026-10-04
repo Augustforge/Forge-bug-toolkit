@@ -1,0 +1,26 @@
+id: sandwich_target
+description: Large swap without adequate slippage guard — sandwich attack candidate.
+
+applies_to: [evm]
+
+match:
+  function_selectors:
+    - "0x414bf389"                             # exactInputSingle (UniV3)
+    - "0xc04b8d59"                             # exactInput (UniV3)
+    - "0x7ff36ab5"                             # swapExactETHForTokens (UniV2)
+    - "0x38ed1739"                             # swapExactTokensForTokens (UniV2)
+  value_min_usd: 50000                         # large enough for searcher profit
+  slippage_check:                              # decoded amountOutMin / amountOutMinimum
+    max_slippage_bps: 100                      # > 1% = sandwich-able
+
+severity: medium
+disposition: alert_only                        # users may benefit from alert before swap
+
+rate_limit:
+  per_pattern_per_hour: 30
+
+notes: |
+  Not a vulnerability — user error. Pattern for:
+  1. Warning users (white-hat alerts via API)
+  2. Spotting protocol-level slippage-guard absences
+  3. MEV research data

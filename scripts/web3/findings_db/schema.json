@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Finding Record",
+  "description": "Schema for findings_db.jsonl entries",
+  "type": "object",
+  "required": ["finding_id", "timestamp", "target", "severity_claimed", "class", "pre_review_text"],
+  "properties": {
+    "finding_id": {
+      "type": "string",
+      "pattern": "^fd_[0-9a-f]{8}$",
+      "description": "Unique ID, fd_<8hex>"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "kb_id": {
+      "type": ["string", "null"],
+      "description": "Bridge to existing _knowledge_base.py findings.jsonl entry (if promoted from there)"
+    },
+    "target": {
+      "type": "string",
+      "description": "Protocol/repo name (e.g., uniswap-v3, thorchain)"
+    },
+    "target_kind": {
+      "type": "string",
+      "description": "Auto-derived from KB or manual: defi-amm, defi-lending, bridge, mpc-custody, ..."
+    },
+    "severity_claimed": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "severity_after_review": {
+      "type": ["string", "null"],
+      "enum": ["low", "medium", "high", "critical", null],
+      "description": "Updated post peer_review or post-CRM-outcome"
+    },
+    "class": {
+      "type": "string",
+      "description": "Root-cause class (oracle_manipulation, reentrancy, tss_validator_extraction, ...)"
+    },
+    "threat_models": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Linked threat_model YAML IDs"
+    },
+    "pre_review_text": {
+      "type": "string",
+      "description": "Hunter's writeup before peer_review — exploitation steps, impact, PoC reference"
+    },
+    "found_by": {
+      "type": ["string", "null"],
+      "description": "Plan 9 T7 (Tier C, base only): what actually surfaced the finding — '<phase/technique>|model|undup-origin|~cost' (e.g. 'deephunt-J5-depth|opus|composition-seam|~3h'). Passive raw-data; NEVER influences SELECT/priority. Read cross-hunt by yield_rollup.py."
+    },
+    "peer_review": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reviewer", "verdict", "rationale", "timestamp"],
+        "properties": {
+          "reviewer": {"type": "string", "description": "claude_adversarial / claude_dev_frame / human / ..."},
+          "verdict": {"type": "string", "enum": ["plausible", "refuted", "interesting", "needs_deep", "needs_human"]},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "rationale": {"type": "string"},
+          "fp_reasons": {"type": "array", "items": {"type": "string"}},
+          "valid_reasons": {"type": "array", "items": {"type": "string"}},
+          "timestamp": {"type": "string"}
+        }
+      }
+    },
+    "consensus": {
+      "type": ["string", "null"],
+      "enum": ["plausible", "refuted", "interesting", "needs_human_review", null],
+      "description": "Computed from peer_review entries"
+    },
+    "crm_id": {
+      "type": ["string", "null"],
+      "description": "Reference to _crm.py reports.jsonl entry if submitted"
+    },
+    "crm_status": {
+      "type": ["string", "null"],
+      "enum": ["draft", "submitted", "triaged", "accepted", "duplicate", "rejected", "paid", "no-response", null]
+    },
+    "bounty_amount_usd": {
+      "type": ["number", "null"]
+    },
+    "reputation_impact": {
+      "type": ["number", "null"],
+      "description": "Score delta applied to reputation.json after CRM outcome (+10 paid, +3 accepted, -2 rejected, ...)"
+    },
+    "related_findings": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Other finding_id values that are siblings/variants"
+    },
+    "disputes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {"type": "string"},
+          "reason": {"type": "string"},
+          "resolution": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

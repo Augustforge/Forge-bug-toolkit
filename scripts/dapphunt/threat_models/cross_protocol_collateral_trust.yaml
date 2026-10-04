@@ -1,0 +1,113 @@
+id: cross_protocol_collateral_trust
+title: Unverified Wrapped/Bridged Collateral Acceptance in Lending → Drain Amplifier
+version: 1.0
+class: cross_protocol_trust
+
+# Lending/CDP protocol that accepts wrapped/bridged tokens as collateral without
+# verifying real backing — this is the AMPLIFIER half of the Echo chain.
+# Without this acceptance, a fake mint is unrealized loss.
+applies_when:
+  any_tag:
+    - lending
+    - borrowing
+    - cdp
+    - money_market
+    - leverage_protocol
+    - perp_collateral
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: curvance_in_echo_chain_2026_05_19
+    title: "Curvance on Monad accepted freshly-minted eBTC as collateral → $816K realized loss in Echo exploit"
+    platform: incident
+    target_class: lending
+    severity: critical
+
+hypotheses:
+  - id: H_no_backing_oracle
+    text: |
+      If `{lending_protocol}` accepts `{collateral_token}` (a wrapped or bridged
+      asset) using only a price oracle, without verifying the ratio of
+      `totalSupply` to verifiable real backing reserve, then a compromised mint
+      on `{collateral_token}` becomes a direct theft primitive against the
+      lending pool.
+    verification:
+      - Read lending protocol's oracle config for {collateral_token}
+      - Identify oracle type (Chainlink price feed, Pyth, internal TWAP, custom adapter)
+      - For wrapped assets: is there ANY check that totalSupply ≤ backing reserve?
+      - Cross-check against {collateral_token}'s admin model — if admin is single EOA,
+        the trust chain is already critical regardless of the lending side
+    severity_estimate: critical
+
+  - id: H_no_per_collateral_borrow_cap
+    text: |
+      If `{lending_protocol}` has no per-collateral debt cap for `{collateral_token}`,
+      then theft scales linearly with attacker's mint capacity. Per-collateral caps
+      function as defense-in-depth even when underlying collateral is compromised.
+    verification:
+      - Query lending protocol governance params for borrowCap / supplyCap per asset
+      - If 0 or uint256.max → no cap → Critical amplifier
+      - If finite → max realized loss bounded; downgrade to High
+    severity_estimate: high
+
+  - id: H_async_collateral_acceptance_no_grace
+    text: |
+      If `{lending_protocol}` accepts a newly-added collateral token instantly via
+      a governance proposal that doesn't include a grace/observation period,
+      attackers can race the listing with a pre-staged mint compromise.
+    verification:
+      - Read governance proposal flow — is there a timelock between proposal pass
+        and asset listing activation?
+      - If <24h grace, flag as Medium
+    severity_estimate: medium
+
+  - id: H_collateral_whitelist_is_too_permissive
+    text: |
+      If `{lending_protocol}` auto-whitelists collateral tokens via on-chain
+      criteria (e.g., "any ERC-20 with >$1M TVL") without manual review, then
+      Sybil attackers can list malicious tokens with controllable mint authority.
+    verification:
+      - Check listing process — manual review by DAO or automated?
+      - If automated, list criteria and find bypasses
+    severity_estimate: high
+
+  - id: H_oracle_uses_dex_twap_of_minted_token
+    text: |
+      If `{lending_protocol}` prices `{collateral_token}` via DEX TWAP on a pool
+      that the attacker can manipulate (low liquidity + can be seeded with own
+      mint), then compromised mint feeds attacker-controlled price → unlimited
+      borrow against zero real backing.
+    verification:
+      - Identify which pool the oracle reads from
+      - Check pool liquidity depth (target $50K+ slippage is realistic threshold)
+      - Check if attacker could be initial LP or sole LP
+    severity_estimate: critical
+
+mitigation: |
+  - For wrapped/synthetic collateral: require oracle with PoR (Proof of Reserves) or
+    independent verification of `totalSupply ≤ backing_reserve`.
+  - Per-collateral borrow caps + supply caps as defense-in-depth.
+  - Manual DAO review for new collateral additions; minimum 24h grace + observation period.
+  - Prefer Chainlink CCIP / PoR feeds for cross-chain assets over self-reported supply.
+  - Circuit breaker: pause borrowing against a collateral if its totalSupply grows
+    unexpectedly fast (statistical anomaly detection).
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/lending_collateral_oracle.json
+  - sessions/$DOMAIN/onchain/lending_borrow_caps.json
+  - sessions/$DOMAIN/onchain/lending_listing_governance.json
+
+autotag_signals:
+  contract_name_match:
+    - LendingPool
+    - Comptroller
+    - PoolConfigurator
+    - Vault.*Lending
+    - Market
+  function_signature_match:
+    - "addReserve"
+    - "listMarket"
+    - "deposit.*collateral"
+    - "borrow"

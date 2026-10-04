@@ -1,0 +1,22 @@
+// Test template: CPI authority bypass / program ID spoofing (Loopscale 2025 class)
+
+use anchor_lang::prelude::*;
+use solana_program_test::*;
+
+#[tokio::test]
+async fn test_exploit_cpi_program_id_spoofing() {
+    // Setup: target protocol calls external program (e.g. RateX) via CPI
+    // without validating the program ID.
+    // Attacker deploys malicious program with same instruction interface,
+    // passes its ID instead, returns inflated values.
+
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+    let malicious_program_id = Pubkey::new_unique();
+    program_test.add_program("MALICIOUS_PROGRAM", malicious_program_id, None);
+
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    // Call target with malicious_program_id where expected protocol program should be
+    // TODO: build instruction with malicious_program_id substituted for the trusted CPI target
+    // expect: target accepts malicious response, uses inflated rate, allows undercollateralized loan
+}

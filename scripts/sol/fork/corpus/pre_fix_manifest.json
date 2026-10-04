@@ -1,0 +1,112 @@
+{
+  "description": "Pre-fix commit references for each known Solana exploit. Use re_discovery_runner.py for automated regression.",
+  "exploits": [
+    {
+      "name": "cashio_2022",
+      "loss_usd": 52000000,
+      "exploit_date": "2022-03-23",
+      "repo_url": "https://github.com/cashioapp/cashio.git",
+      "pre_fix_commit": "main",
+      "pre_fix_note": "Cashio was a one-shot exploit, repo wasn't actively patched after the exploit. Whole HEAD is effectively pre-fix.",
+      "expected_finding_class": "owner_check_missing",
+      "expected_files": ["programs/brrr/src/processor/mint_cashio.rs"],
+      "expected_account_name_pattern": "collateral|saber_swap|crate",
+      "validation_status": "PASS_PRIOR_SESSION",
+      "validation_evidence": "owner_check_scanner found `collateral @ lib.rs:252` as [known_class] critical, 5 novel surface gaps"
+    },
+    {
+      "name": "wormhole_2022",
+      "loss_usd": 325000000,
+      "exploit_date": "2022-02-02",
+      "repo_url": "https://github.com/wormhole-foundation/wormhole.git",
+      "pre_fix_commit": "before:2022-02-02",
+      "pre_fix_note": "Date-based lookup for the last commit before the Wormhole signature_verify exploit (Feb 2-3, 2022).",
+      "expected_finding_class": "account_trust_violation",
+      "expected_files": ["solana/bridge/program/src/api/verify_signature.rs"],
+      "expected_account_name_pattern": "signature_set|sysvar|instruction",
+      "validation_status": "BLOCKED_NATIVE_SOLANA",
+      "validation_note": "Wormhole is native Solana (uses next_account_info iterator), not Anchor. Our scanners detect Anchor patterns Account<T>/#[account(...)]. Native scanner = future work item.",
+      "validation_command": "n/a"
+    },
+    {
+      "name": "mango_2022",
+      "loss_usd": 114000000,
+      "exploit_date": "2022-10-11",
+      "repo_url": "https://github.com/blockworks-foundation/mango-v3.git",
+      "pre_fix_commit": "before:2022-10-11",
+      "pre_fix_note": "Avraham Eisenberg market-manipulation. Not strictly a code bug (governance attack) — but the oracle resilience surface is measurable.",
+      "expected_finding_class": "oracle_integration | economic_attack",
+      "expected_files": ["program/src/processor.rs", "program/src/oracle.rs"],
+      "validation_status": "PENDING_FULL_CLONE",
+      "validation_command": "git -C mango-v3 fetch --unshallow && git -C mango-v3 checkout $(git -C mango-v3 log --before=2022-10-11 -1 --format=%H) && python3 scripts/sol/hypothesis/oracle_integration_audit.py --target mango-v3/program/src"
+    },
+    {
+      "name": "crema_2022",
+      "loss_usd": 8700000,
+      "exploit_date": "2022-07-03",
+      "repo_url": "https://github.com/Cremafinance/crema-cli.git",
+      "pre_fix_commit": "before:2022-07-03",
+      "pre_fix_note": "Tick array manipulation. Source partially open — may need binary analysis fallback (Heimdall/sBPF).",
+      "expected_finding_class": "amm_tick_array",
+      "expected_files": ["program/src/processor.rs"],
+      "validation_status": "PENDING_SOURCE_AVAILABILITY"
+    },
+    {
+      "name": "raydium_clmm_2024",
+      "loss_usd": 505000,
+      "exploit_date": "2024-01-11",
+      "fix_commit": "e6dd1d5",
+      "pre_fix_commit": "83b5a47",
+      "repo_url": "https://github.com/raydium-io/raydium-clmm.git",
+      "pre_fix_note": "Pre-fix code: `Some(&remaining_accounts[0])` without require_keys_eq. Fix e6dd1d5 added TickArrayBitmapExtension::key() check.",
+      "expected_finding_class": "remaining_accounts_unverified",
+      "expected_files": ["programs/amm/src/instructions/increase_liquidity.rs"],
+      "validation_status": "PASS_RE_DISCOVERED",
+      "validation_evidence": "remaining_accounts_validator.py found [CRITICAL] [known_class] increase_liquidity.rs:292 in pre-fix (83b5a47). Post-fix (e6dd1d5) returns 0 findings. Symmetric proof.",
+      "scanner_used": "scripts/sol/hypothesis/remaining_accounts_validator.py"
+    },
+    {
+      "name": "loopscale_2025",
+      "loss_usd": 5800000,
+      "exploit_date": "2025-04-26",
+      "repo_url": "PRIVATE",
+      "pre_fix_commit": null,
+      "pre_fix_note": "Loopscale source not public pre-exploit. Workaround: study post-mortem + recreate pattern in test project.",
+      "expected_finding_class": "cpi_program_id_missing",
+      "validation_status": "BLOCKED_SOURCE_PRIVATE"
+    },
+    {
+      "name": "marginfi_2025",
+      "loss_usd": 160000000,
+      "exploit_date": "2025-09-15",
+      "repo_url": "https://github.com/mrgnlabs/marginfi-v2.git",
+      "pre_fix_commit": "before:2025-09-15",
+      "pre_fix_note": "$160M prevented. Asymmetric Research disclosed. State flag ACCOUNT_IN_FLASHLOAN bypass via new transfer instruction.",
+      "expected_finding_class": "state_route_alternative",
+      "expected_files": ["programs/marginfi/src/instructions/marginfi_account/"],
+      "validation_status": "PARTIAL_NEEDS_DIFF_TOOL",
+      "validation_note": "Pre-fix state (67ab029e~1) checked out. state_route_analyzer returns 0 findings. Bug needs recent_audit_diff_analyzer which detects new instruction handler added without state flag check. Bug class = 'post-audit new handler omits guard' — different from state_route alternatives. Re-test when recent_audit_diff_analyzer is applied to the marginfi git log",
+      "fix_commit": "67ab029e",
+      "pre_fix_commit": "67ab029e~1"
+    },
+    {
+      "name": "drift_2026",
+      "loss_usd": 285000000,
+      "exploit_date": "2026-04-XX",
+      "repo_url": "https://github.com/drift-labs/protocol-v2.git",
+      "pre_fix_commit": "before:2026-04-XX",
+      "pre_fix_note": "Squads v4 + durable nonce + zero-timelock. Governance compromise, not a code bug in isolation.",
+      "expected_finding_class": "governance_durable_nonce",
+      "validation_status": "GOVERNANCE_BUG_NOT_CODE_PATCHABLE"
+    }
+  ],
+  "summary": {
+    "total_targets": 8,
+    "code_patchable": 6,
+    "blocked_private_source": 1,
+    "governance_only": 1,
+    "validated_prior_session": 1,
+    "ready_after_unshallow": 4,
+    "production_threshold": 5
+  }
+}

@@ -1,0 +1,135 @@
+id: erc4626_vault_inflation
+title: ERC-4626 First-Depositor Donation → Share Inflation Attack
+version: 1.0
+class: vault_accounting
+
+# When to apply this threat model
+applies_when:
+  any_tag:
+    - erc4626
+    - vault
+    - yield_vault
+    - lp_vault
+    - tokenized_vault
+    - meta_morpho
+    - yearn_vault
+    - aave_vault
+    - lst_vault
+
+severity_ceiling: critical
+severity_floor: high
+
+reference_findings:
+  - id: hundred_finance_2023_04
+    title: "Hundred Finance — empty market donation → $7M (Compound v2 fork pattern)"
+    platform: incident
+    severity: critical
+  - id: sherlock_4626_findings_2023_2024
+    title: "Sherlock contests — ~20+ ERC-4626 inflation findings in audited code"
+    platform: sherlock
+    severity: high
+  - id: meta_morpho_audit_findings_2024
+    title: "Meta Morpho — initial deposit protection added after audit findings"
+    platform: spearbit
+    severity: high
+  - id: openzeppelin_4626_v5_fix
+    title: "OpenZeppelin v4.9.0 added _decimalsOffset() defense; pre-v4.9 forks vulnerable"
+    platform: github
+    severity: high
+
+hypotheses:
+  - id: H_first_deposit_share_manipulation
+    text: |
+      If `{vault_contract}` follows ERC-4626 and uses `assets * totalSupply /
+      totalAssets` share math without (a) virtual shares offset, (b) initial dead
+      shares burn, or (c) initialization lock, then a first depositor can mint 1
+      share for 1 wei, donate large amount directly via `asset.transfer(vault,
+      X)`, and subsequent depositors round down to 0 shares. Attacker withdraws
+      all assets including stolen deposits.
+    verification:
+      - Check OpenZeppelin version: ERC4626 from v4.9+ has _decimalsOffset (default 0 still vulnerable; reproducer needed)
+      - Search for `_convertToShares` / `_convertToAssets` overrides
+      - Look for initialization that mints dead shares (often 10^3 or 10^6)
+      - Look for "first deposit must be >X" check
+      - Reproducer: fork → deposit 1 wei → direct transfer 1e18 → second deposit 9e17 returns 0 shares
+    severity_estimate: critical
+
+  - id: H_donation_via_self_transfer
+    text: |
+      If `{vault_contract}.totalAssets()` returns `asset.balanceOf(address(this))`
+      directly without internal accounting, then any external `asset.transfer(vault,
+      X)` inflates per-share price out-of-band. Combined with H_first_deposit →
+      drain primitive. Even with virtual shares offset, donation attack reduces
+      precision of subsequent depositors.
+    verification:
+      - Read `totalAssets()` implementation; balanceOf-based vs internal accounting
+      - If balanceOf-based, even with offset → precision-loss + rounding bug surface
+    severity_estimate: high
+
+  - id: H_compound_v2_empty_market_donation
+    text: |
+      Compound v2 fork (cToken with empty market). If `{ctoken}.totalSupply == 0`
+      and attacker can mint `cToken(1)` and donate large `underlying.transfer(ctoken, X)`,
+      then `cToken.exchangeRate = (cash + borrow - reserves) / totalSupply` inflates
+      to drain subsequent suppliers. This is the Hundred Finance pattern.
+    verification:
+      - Enumerate all markets via Comptroller.getAllMarkets()
+      - For each cToken: read totalSupply()
+      - If 0 → flag as vulnerable empty market
+      - Verify nothing in cToken initialization mints dead shares
+    severity_estimate: critical
+
+  - id: H_rebasing_token_as_asset
+    text: |
+      If `{vault_contract}` uses a rebasing token (aToken, stETH, USDR-style) as
+      underlying without rebase-aware accounting, then rebase events alter
+      totalAssets() out-of-band of mint/withdraw flows → share price discontinuity
+      → liquidation/withdrawal misprice on the discontinuity boundary.
+    verification:
+      - Identify underlying asset; flag stETH, aTokens, ePendle, rebasing wrappers
+      - Check if vault uses balanceOf() or internal accounting unaffected by rebase
+      - Test rebase impact on assetsPerShare in fork
+    severity_estimate: high
+
+  - id: H_share_math_rounding_direction
+    text: |
+      If `{vault_contract}` rounds UP on withdraw and rounds DOWN on deposit (or
+      uses wrong direction in either), then an attacker can burn shares to extract
+      more assets than entitled. ERC-4626 spec requires rounding favors the
+      protocol, not the user.
+    verification:
+      - Read _convertToShares / _convertToAssets for Math.Rounding.{Up,Down}
+      - Verify deposit uses Down (user gets ≤ true share value)
+      - Verify withdraw uses Up (user pays ≥ true share value)
+      - Wrong direction → asymmetric mint/burn → arbitrage primitive
+    severity_estimate: high
+
+mitigation: |
+  - Use OpenZeppelin v4.9+ ERC4626 with `_decimalsOffset()` ≥ 6
+  - Mint and burn dead shares (e.g., 10^3) to address(0) on first deposit, OR
+    require initial deposit by deployer with locked shares
+  - Use internal accounting (`_totalAssets`) instead of `balanceOf(this)` to immunize from donations
+  - For rebasing underlying: store shares not assets; convert on each interaction
+  - Audit share math rounding direction per ERC-4626 spec (mint up, redeem down — i.e. favors protocol)
+  - Empty markets in Compound v2 forks must require minimum initialization deposit
+
+evidence_sources:
+  - sessions/$DOMAIN/onchain/vault_contracts.json
+  - sessions/$DOMAIN/onchain/vault_share_math.json
+
+autotag_signals:
+  function_signature_match:
+    - "deposit(uint256,address)"
+    - "mint(uint256,address)"
+    - "withdraw(uint256,address,address)"
+    - "redeem(uint256,address,address)"
+    - "convertToShares"
+    - "convertToAssets"
+    - "totalAssets"
+  contract_name_match:
+    - Vault
+    - Vault4626
+    - ERC4626
+    - YieldStrategy
+    - cToken
+    - aToken

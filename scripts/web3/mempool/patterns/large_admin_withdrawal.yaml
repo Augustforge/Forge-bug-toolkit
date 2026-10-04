@@ -1,0 +1,34 @@
+id: large_admin_withdrawal
+description: Admin / owner / governance withdraws large amount from vault — possible rug-pull or compromise
+
+applies_to: [evm]                              # chains: evm | solana | both
+
+match:
+  # Function selectors to match (4-byte signature prefixes)
+  function_selectors:
+    - "0x3ccfd60b"                             # withdraw()
+    - "0x2e1a7d4d"                             # withdraw(uint256)
+    - "0x441a3e70"                             # withdraw(uint256,uint256)
+    - "0xdb006a75"                             # redeem(uint256)
+    - "0xa9059cbb"                             # transfer(address,uint256)
+    - "0xf3fef3a3"                             # withdraw(address,uint256) — protocol-specific
+  # Optional: minimum USD value (computed via Pyth/Chainlink price feeds — chain-specific)
+  value_min_usd: 100000
+  # Caller checks (any of):
+  caller_is_one_of:
+    - role: admin                              # check via on-chain ABI (Ownable.owner())
+    - role: governance
+    - role: timelock_executor
+  # Optional: to_address is known vault/treasury (we want to flag draining)
+  to_is_known_protocol: true                   # uses Etherscan label lookup
+
+severity: high
+disposition: alert_only                        # MUST start with alert_only; bump to tip_protocol after validation
+
+rate_limit:
+  per_pattern_per_hour: 10
+
+notes: |
+  This pattern catches Thorchain-style insider drains AND legitimate large protocol withdrawals.
+  False positive rate expected high initially — review each alert, refine selectors over time.
+  Once 5+ true positives validated → bump disposition to tip_protocol.

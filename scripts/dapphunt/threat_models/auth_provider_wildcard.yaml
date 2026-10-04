@@ -1,0 +1,77 @@
+id: auth_provider_wildcard
+title: Auth Provider Allowed-Domains Wildcard → Trust Expansion
+version: 1.0
+class: trust_boundary
+
+# When to apply this threat model
+applies_when:
+  any_tag:
+    - privy
+    - magic
+    - web3auth
+    - dynamic
+    - thirdweb
+    - appkit
+    - reown
+    - walletconnect
+
+# Severity ceiling for findings derived from this model
+severity_ceiling: high
+severity_floor: medium
+
+# Real-world reference
+reference_findings:
+  - id: synfutures_2026_05_20
+    title: "SynFutures Privy *.iftl.info wildcard → clickjacking + wallet phishing"
+    platform: hackenproof
+    target_class: dApp
+    severity: high
+
+# Hypothesis template — instantiated by apply_dapp.py with target-specific values
+hypotheses:
+  - id: H_wildcard_under_uncontrolled_subdomain
+    text: |
+      If auth provider config declares wildcard `*.{base_domain}` in allowed_domains
+      AND any subdomain matching `*.{base_domain}` is publicly reachable AND that
+      subdomain lacks X-Frame-Options/frame-ancestors, then a clickjacking + wallet
+      phishing chain is available against production users (SynFutures pattern).
+    verification:
+      - Fetch auth provider config JSON; confirm wildcard is present
+      - Enumerate subdomains via crt.sh
+      - HEAD-request each subdomain; flag any without X-Frame-Options or CSP frame-ancestors
+      - Confirm clickjacking PoC frames the unhardened subdomain in a controlled browser
+    severity_estimate: high
+
+  - id: H_dangling_cname_under_wildcard
+    text: |
+      Wildcard `*.{base_domain}` permits a subdomain whose CNAME points to an expired
+      AWS S3 / Heroku / Netlify / Vercel slug. Subdomain takeover → automatic trust
+      inheritance from auth provider → wallet drain primitive.
+    verification:
+      - For each subdomain under wildcard, run dig CNAME
+      - Compare CNAME targets to known takeover-prone services (subjack/nuclei templates)
+      - If hit: confirm registration of the dangling resource is possible
+    severity_estimate: critical
+
+  - id: H_redirect_uri_open_redirect
+    text: |
+      Auth provider OAuth redirect_uri allows wildcard `*.{base_domain}`. Open-redirect
+      to attacker-controlled subdomain enables OAuth token exfiltration.
+    verification:
+      - Read auth provider config redirect_uri list
+      - Test OAuth flow with attacker-controlled subdomain under wildcard
+      - Observe whether tokens are sent to attacker host
+    severity_estimate: high
+
+# Mitigation guidance for the report
+mitigation: |
+  Replace wildcard entries with explicit allowlist of every production subdomain.
+  If a wildcard is operationally necessary, ensure every matching subdomain is
+  under the same security policy (X-Frame-Options + frame-ancestors strict) at
+  the infrastructure level. Audit DNS for dangling CNAMEs monthly.
+
+# Source files the apply engine should read for evidence
+evidence_sources:
+  - sessions/$DOMAIN/auth_provider_config.json
+  - sessions/$DOMAIN/crtsh.json
+  - sessions/$DOMAIN/iframe_trust_matrix.json

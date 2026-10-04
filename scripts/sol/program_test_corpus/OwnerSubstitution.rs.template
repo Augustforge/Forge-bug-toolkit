@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: UNLICENSED
+// Test template: fake account owner substitution (Cashio 2022 class)
+
+use anchor_lang::prelude::*;
+use solana_program_test::*;
+use solana_sdk::{signature::Keypair, signer::Signer, transaction::Transaction, account::Account};
+
+#[tokio::test]
+async fn test_exploit_owner_substitution() {
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+
+    // Inject fake collateral account owned by a malicious program (not the legitimate collateral mint program)
+    let fake_account_key = Keypair::new().pubkey();
+    let fake_owner = Keypair::new().pubkey();
+    program_test.add_account(fake_account_key, Account {
+        lamports: 1_000_000,
+        data: vec![/* layout matching expected struct */ 0u8; 200],
+        owner: fake_owner, // wrong program owner — attacker controlled
+        executable: false,
+        rent_epoch: 0,
+    });
+
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    // Call instruction that should reject fake_account_key (owner != expected)
+    // TODO: build instruction
+    let ix = solana_sdk::instruction::Instruction {
+        program_id: TARGET_PROGRAM_ID,
+        accounts: vec![
+            solana_sdk::instruction::AccountMeta::new(fake_account_key, false),
+        ],
+        data: vec![],
+    };
+
+    let tx = Transaction::new_signed_with_payer(&[ix], Some(&payer.pubkey()), &[&payer], recent_blockhash);
+    let result = banks_client.process_transaction(tx).await;
+    assert!(result.is_ok(), "BUG: protocol accepted account with wrong owner");
+}

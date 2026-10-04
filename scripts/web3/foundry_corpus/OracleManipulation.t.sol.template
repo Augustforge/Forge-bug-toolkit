@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Template: Spot/TWAP oracle manipulation
+// Pattern: protocol uses spot price from low-liquidity pool → manipulate then trade.
+
+import "forge-std/Test.sol";
+
+interface IAMMPool {
+    function swap(address, address, uint256, address) external returns (uint256);
+    function getReserves() external view returns (uint256, uint256, uint32);
+}
+
+interface IVulnerable {
+    function deposit(uint256) external;
+    function liquidate(address user) external;
+    function getPrice() external view returns (uint256);
+}
+
+contract OracleManipulationExploit is Test {
+    address constant FLASHLOAN_PROVIDER = address(0); // Aave V3
+    address constant AMM_POOL = address(0); // pool with manipulatable price
+    address constant VULNERABLE = address(0); // target protocol
+    address constant ASSET = address(0);
+    uint256 constant FORK_BLOCK = 0;
+
+    function setUp() public {
+        if (FORK_BLOCK > 0) {
+            vm.createSelectFork(vm.envString("RPC_URL"), FORK_BLOCK);
+        }
+    }
+
+    function test_Exploit_OracleManipulation() public {
+        IVulnerable target = IVulnerable(VULNERABLE);
+        IAMMPool pool = IAMMPool(AMM_POOL);
+
+        uint256 priceBefore = target.getPrice();
+        console.log("Price before:", priceBefore);
+
+        // Step 1: flash-loan large capital (skipped here, in real PoC)
+        // Step 2: manipulate AMM pool to skew spot price
+        // Step 3: call vulnerable function (e.g., liquidate, mint with bad price)
+        // Step 4: reverse AMM trade, repay flash-loan
+
+        uint256 priceAfter = target.getPrice();
+        console.log("Price after:", priceAfter);
+
+        // TODO: assert profit extracted
+        assertTrue(false, "PLACEHOLDER — implement manipulation steps");
+    }
+}

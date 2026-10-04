@@ -1,0 +1,18 @@
+{
+  "_comment": "Custody contracts to watch for ownership/admin changes (ownership_transfer_monitor.py). Leading indicator of DxSale-class drains. Add bridges, lockers, vaults, escrows you are tracking.",
+  "rpc": {
+    "ethereum": "https://eth.llamarpc.com",
+    "bsc": "https://bsc-dataseed.binance.org",
+    "arbitrum": "https://arb1.arbitrum.io/rpc",
+    "base": "https://mainnet.base.org"
+  },
+  "contracts": [
+    {
+      "chain": "ethereum",
+      "address": "0xa4108aA1Ec4967F8b52220a4f7e94A8201F2D906",
+      "protocol": "gravity-bridge",
+      "type": "bridge",
+      "note": "Gravity.sol — seed example (validator-set bridge)"
+    }
+  ]
+}

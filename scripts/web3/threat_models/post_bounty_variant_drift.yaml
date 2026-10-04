@@ -1,0 +1,51 @@
+name: Post-Bounty Variant Drift
+id: post_bounty_variant_drift
+
+applies_when:
+  protocol_class: [any]
+  tags: [has_past_paid_bounty]                            # meta-tag — manually set in J-2
+  chain: [any]
+
+assumption_violated: |
+  Paid bounty fix addresses entire class of bug, not just specific exploited
+  variant. In practice — auditor often patches narrow code path under time
+  pressure. Sibling variants (same root-cause class, different parameter/path/
+  function) often remain unfixed for years.
+
+actors:
+  - role: future_attacker
+    capability: Reads public bounty disclosure, identifies broader bug class, scans for sibling variants in same protocol or forks
+
+attack_vector: |
+  After paid bounty: protocol publishes disclosure of variant X from class C.
+  Attacker analyzes write-up, extracts class C broader pattern. Searches same
+  module / same protocol / similar protocols for siblings of class C that fix
+  did not address. Often profitable — fix tested only against specific exploit.
+
+hypotheses_template:
+  - "Past paid bounty for variant <X> of class <C> exists. Search same protocol's other functions/modules for sibling variants — same C, different code path."
+  - "Bounty fix added test case only for the specific exploit, not the class. Run negative tests for variants Y and Z of same class C."
+  - "Fix touched N lines in file F. Adjacent code in same file (within ≤3N lines) likely shares same root cause — verify each function there separately."
+  - "Other forks of this protocol (Maya forks THORChain, Sushi forks Uniswap, etc.) — did they merge the bounty fix? Often delayed or never."
+
+severity_floor: medium
+severity_ceiling: critical
+
+case_studies:
+  - thorchain_2026                                        # α-shuffle 2022 → c-split 2026 (4 years)
+  - multichain_2022_2023
+  - alchemix_wsteth_sfraxeth_pair
+
+related_checklists:
+  - scripts/web3/checklists/hypothesis/audit_trail_mining.md
+
+related_prompts:
+  - scripts/web3/prompts/read_as_attacker.md             # used with anti-pattern-matching lens
+
+last_validated_against:
+  date: 2026-05-18
+  targets: []
+  outcome: pending_first_use
+
+# No executable_checks — this model is purely manual hypothesis generation.
+# bounty_regression.py (block C) is the closest automation.

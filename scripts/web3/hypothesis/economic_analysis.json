@@ -1,0 +1,30 @@
+{
+  "input": {
+    "expected_profit_usd": 5000000.0,
+    "gas_units": 500000,
+    "gas_price_gwei": 30.0,
+    "eth_price_usd": 3000.0,
+    "capital_required_usd": 0,
+    "mev_required": false,
+    "multi_step": false,
+    "crypto_specific": false,
+    "feasibility_score": 70
+  },
+  "components": {
+    "gas_cost_usd": 0.03,
+    "capital_source": {
+      "source": "none",
+      "fee_usd": 0,
+      "feasible": true,
+      "type": "no_capital"
+    },
+    "total_cost_usd": 0.03,
+    "lowest_threat_tier": "T1_script_kiddie",
+    "threat_tier_description": "Script kiddie \u2014 replays public exploits"
+  },
+  "verdict": {
+    "severity": "Critical",
+    "roi": 200000000.0,
+    "rationale": "Lowest tier: T1_script_kiddie, profit $5,000,000, cost $0.03, ROI 200000000.0x, feasibility 70%"
+  }
+}

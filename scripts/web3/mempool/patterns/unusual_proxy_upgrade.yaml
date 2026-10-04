@@ -1,0 +1,24 @@
+id: unusual_proxy_upgrade
+description: Proxy upgrade to recently-deployed implementation (< N days old). Pattern of malicious upgrades.
+
+applies_to: [evm]
+
+match:
+  function_selectors:
+    - "0x3659cfe6"                             # upgradeTo(address)
+    - "0x4f1ef286"                             # upgradeToAndCall(address,bytes)
+    - "0x8129fc1c"                             # initialize()
+    - "0xc4d66de8"                             # initialize(address)
+  # Additional check (runtime):
+  implementation_deployed_within_days: 7       # implementation contract deployed < 7 days ago = suspicious
+
+severity: high
+disposition: alert_only                        # always alert first — proxy upgrades may be legitimate
+
+rate_limit:
+  per_pattern_per_hour: 5
+
+notes: |
+  Triggered on: Ronin pattern (compromised signer upgrades bridge to attacker impl),
+  many drainer-class attacks. Legitimate upgrades typically use older, audited impls;
+  fresh-deploy upgrades — red flag, but not auto-bug.

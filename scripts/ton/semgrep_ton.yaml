@@ -1,0 +1,71 @@
+rules:
+
+  - id: ton-unverified-signature
+    patterns:
+      - pattern: $RESULT = $OBJ.verify($SIG, ...);
+      - pattern-not: |
+          $RESULT = $OBJ.verify($SIG, ...);
+          ...
+          if (!$RESULT) { ... }
+      - pattern-not: |
+          if (!$OBJ.verify($SIG, ...)) { ... }
+    message: "Signature verification result may not be checked — $OBJ.verify()"
+    languages: [cpp]
+    severity: ERROR
+    metadata:
+      category: security
+      ton_module: crypto
+
+  - id: ton-tl-deserialize-unchecked
+    pattern: |
+      auto $X = $OBJ.fetch_$METHOD(...);
+    pattern-not: |
+      auto $X = $OBJ.fetch_$METHOD(...);
+      if ($X.is_error()) { ... }
+    message: "TL-B deserialize result not checked: fetch_$METHOD()"
+    languages: [cpp]
+    severity: WARNING
+    metadata:
+      category: security
+      ton_module: tonlib
+
+  - id: ton-status-not-propagated
+    patterns:
+      - pattern: |
+          auto $STATUS = $FUNC(...);
+          $STATUS.ensure();
+      - pattern-not: return $STATUS;
+    message: "td::Status result is ensure()d but not propagated — silent failure"
+    languages: [cpp]
+    severity: WARNING
+    metadata:
+      category: reliability
+      ton_module: general
+
+  - id: ton-catchain-block-height-cast
+    patterns:
+      - pattern: "(int)$HEIGHT"
+      - metavariable-regex:
+          metavariable: $HEIGHT
+          regex: ".*height.*|.*seqno.*|.*round.*"
+    message: "Unsafe cast of block height/seqno to int — potential overflow in catchain"
+    languages: [cpp]
+    severity: WARNING
+    metadata:
+      category: security
+      ton_module: catchain
+
+  - id: ton-shared-ptr-no-null-check
+    pattern: |
+      $PTR->$METHOD(...)
+    pattern-not: |
+      if ($PTR) { $PTR->$METHOD(...); }
+    pattern-not: |
+      CHECK($PTR);
+      $PTR->$METHOD(...);
+    message: "Shared/raw pointer dereference without null check: $PTR->$METHOD()"
+    languages: [cpp]
+    severity: WARNING
+    metadata:
+      category: safety
+      ton_module: general

@@ -1,0 +1,141 @@
+name: ERC-4337 Signature, Paymaster & Bundler Integrity Gaps
+id: erc4337_signature_replay
+
+applies_when:
+  protocol_class: [account-abstraction, aa-wallet, smart-account, paymaster, bundler]
+  tags: [erc4337, erc-4337, aa, account-abstraction, smart-account, paymaster, bundler, entrypoint, erc1271, erc-1271, erc7579, modular-account, session-keys, social-recovery, factory-create2, counterfactual-deployment, gas-sponsorship]
+  chain: [any]
+
+negative_match:
+  tags: [aa_signature_audit_passed_post_2025_q3, eip7702_native_no_4337]
+
+assumption_violated: |
+  ERC-4337 account abstraction splits trust into three zones — account (validateUserOp),
+  paymaster (validatePaymasterUserOp), bundler (off-chain sequencing) — and each one
+  silently assumes the others correctly authenticate inputs they hand off.
+  Specifically the protocol assumes that:
+  (1) UserOp hash uniqueness guarantees that a signature cannot be replayed cross-account /
+      cross-context / cross-chain;
+  (2) Paymaster validation-time state equals execution-time state (gas price, oracle prices,
+      account balance);
+  (3) Bundler's counterfactual address derivation cryptographically binds to the initial owner —
+      anyone deploying gets identical state as the user intended.
+  All three assumptions can be violated separately, each opening a distinct vector
+  (cross-account signature replay, paymaster drain, denial-of-wallet via initCode frontrun).
+
+actors:
+  - role: legitimate_smart_account_owner
+    capability: Holds EOA owner key, signs UserOps from its own smart account via EntryPoint
+  - role: malicious_relayer_or_bundler
+    capability: Sees pending UserOps in mempool / private relay, can frontrun deployment OR submit modified UserOps
+  - role: malicious_paymaster_user
+    capability: Sponsored by public/private paymaster, spams UserOps with extreme gas to drain paymaster deposit
+  - role: cross_context_signature_attacker
+    capability: Obtains a legitimate signature from a smart account in context A (e.g., Uniswap order), replays it in context B (e.g., Permit2 transfer, Safe transaction) via ERC-1271 isValidSignature
+
+attack_vector: |
+  Four primary patterns (all documented in Cantina ERC-4337 security advisory):
+
+  1. **Cross-account UserOp signature replay** — Account factory deploys clones with identical bytecode. UserOp hash construction uses packed encoding or omits account address from domain. Signature from a UserOp on account A is a valid hash on account B (if they share codehash). Attacker copies signed UserOp, swaps sender field, replays.
+
+  2. **ERC-1271 cross-context signature reuse** — Smart account implements `isValidSignature(hash, sig)` without an EIP-712 domain separator. Signature created for context A (DEX order) is treated as valid for context B (Permit2 approval, Safe transaction) because hash construction does not bind to application context.
+
+  3. **Paymaster validation/execution drift** — `validatePaymasterUserOp` checks user balance / price / quota at validation time, but `postOp` recomputes cost using fresh state (gas price spike, oracle price drift). Paymaster eats difference. Variant: no per-account budget cap → spam drains deposit.
+
+  4. **InitCode frontrun (denial-of-wallet)** — Account factory uses CREATE2 with salt = nonce only (not bound to owner). User computes counterfactual address, sends funds to it. Malicious bundler observes initCode in mempool, deploys account first with different owner. User's funds stuck OR account now controlled by attacker.
+
+  5. **Signature-appended metadata not committed to hash** — The contract parses auth parameters (validUntil / validAfter / nonce-window / sponsor-data) from the trailing bytes of `userOp.signature` (or callData) and trusts them in validateUserOp, BUT those bytes are NOT part of `userOpHash`, which the owner signed. A relayer/bundler can change the trailing bytes (e.g. extend the validity window, change validAfter) WITHOUT invalidating the signature → the signature stays valid for modified parameters. Differs from patterns 1-2 (there the same signature is replayed in another context; here unsigned data accompanying the same signature is mutated). Code4rena Intuition M-01 (2026-03, 0xvivekd): validUntil/validAfter from the last 12 bytes of signature are not in the hash.
+
+  Defense across all: validation hashes MUST commit to (chainId, entryPoint, account, application context) AND to ALL auth parameters that the contract parses and trusts (validUntil/validAfter/sponsor-data — if the contract reads them, the signature must cover them). Paymaster must freeze pricing snapshot between validation and postOp + enforce per-account caps. Factory salt MUST commit to owner identity cryptographically.
+
+hypotheses_template:
+  - "If smart account factory deploys clones (CREATE2 + minimal proxy / ERC-1167) with identical codehash, check: does UserOp hash derivation include account address in domain? If `abi.encodePacked` is used without EIP-712 + sender field — high probability of cross-account signature replay."
+  - "If smart account implements ERC-1271 `isValidSignature`, check: does hash construction use an EIP-712 domain separator with (name, version, chainId, verifyingContract)? If signature is checked only over `keccak256(rawData)` — the same signature is valid for Permit2 / Safe / Uniswap orders → cross-context replay."
+  - "If paymaster sponsors gas (verifying-paymaster, ERC20-fee, deposit-based), look for: (a) per-account / per-time budget cap in `validatePaymasterUserOp`; (b) pricing snapshot frozen between validation and postOp. If `postOp` uses `tx.gasprice` or a `block.timestamp`-dependent oracle directly — validation-execution drift attack."
+  - "If account factory uses CREATE2 for counterfactual deployment, check salt construction: `keccak256(owner || ...)` or only `nonce`? If salt does not commit to owner — malicious bundler can frontrun deployment with a different owner → denial-of-wallet or fund theft if address is already funded."
+  - "If smart account supports modules (ERC-7579) or session keys, check: can removed/replaced module signatures not be replayed via legacy validation paths? Is module installation authenticated by owner-key (not paymaster/bundler privilege)?"
+  - "If bundler simulates validation off-chain (mandatory ERC-4337 step), check banned opcodes (ERC-7562): `BLOCKHASH`, `TIMESTAMP`, `BALANCE`, `SLOAD` on foreign storage. Validation-execution divergence allows bundler griefing — submits valid validation but execution reverts, bundler gets no compensation."
+  - "If validateUserOp parses auth parameters from the trailing bytes of signature/callData (validUntil, validAfter, nonce-window, sponsor/paymaster-data, time-bounds), check: are THESE bytes included in userOpHash which the owner signed? If the contract does `sig[0:64]` for ecrecover and reads `sig[64:]` as validUntil/validAfter WITHOUT including them in the signed hash → relayer mutates parameters, signature remains valid (Intuition M-01). Grep: slicing signature into parts where the tail is treated as data, not as part of the signature."
+
+severity_floor: medium
+severity_ceiling: critical
+
+executable_checks:
+  - id: erc1271-without-domain-separator
+    description: "Detect ERC-1271 isValidSignature implementations using raw hash without EIP-712 domain"
+    type: grep
+    patterns:
+      - "isValidSignature\\s*\\("
+      - "ERC1271|IERC1271|ERC_1271"
+    file_globs: ["*.sol"]
+    flag_if: "isValidSignature found AND no EIP712|_domainSeparator|DOMAIN_SEPARATOR in same file"
+
+  - id: create2-salt-without-owner-binding
+    description: "Detect CREATE2 account factory with salt not cryptographically bound to owner"
+    type: grep
+    patterns:
+      - "CREATE2|create2|new\\s+\\w+\\{salt:"
+      - "factory|createAccount|deployWallet"
+    file_globs: ["*.sol"]
+    flag_if: "salt construction visible AND salt does not include keccak256 of owner address"
+
+  - id: paymaster-postop-uses-fresh-gas-price
+    description: "Detect paymaster postOp callback using mutable state (tx.gasprice, oracle calls)"
+    type: grep
+    patterns:
+      - "postOp\\s*\\("
+      - "tx\\.gasprice|block\\.timestamp|latestAnswer\\(\\)"
+    file_globs: ["*.sol"]
+    flag_if: "postOp function found AND tx.gasprice|oracle call in same function body"
+
+  - id: userop-hash-packed-encoding
+    description: "Detect UserOp hash construction with abi.encodePacked (collision risk)"
+    type: grep
+    patterns:
+      - "abi\\.encodePacked\\s*\\([^)]*userOp"
+      - "userOpHash|getUserOpHash"
+    file_globs: ["*.sol"]
+    flag_if: "encodePacked used over UserOp fields instead of abi.encode + EIP-712"
+
+  - id: missing-per-account-paymaster-cap
+    description: "Detect paymaster without visible per-account spend tracking"
+    type: regex_count
+    patterns:
+      - "mapping\\s*\\(\\s*address\\s*=>\\s*uint\\d*\\)\\s+(\\w+spent|\\w+used|\\w+budget|\\w+sponsored)"
+    file_globs: ["*.sol"]
+    flag_if: "count == 0 AND validatePaymasterUserOp function exists"
+
+  - id: signature-trailing-metadata-unsigned
+    description: "Detect auth-params sliced from signature/callData tail and trusted without inclusion in the signed hash (Intuition M-01)"
+    type: grep
+    patterns:
+      - "validUntil|validAfter|sigTimeRange|_parseValidationData"
+      - "signature\\[[^\\]]*:\\]|callData\\[[^\\]]*:\\]|\\.length\\s*-\\s*\\d+"
+    file_globs: ["*.sol"]
+    flag_if: "validateUserOp slices signature/callData tail into time-bounds/auth-params AND those bytes are absent from userOpHash construction (ecrecover over sig[:65], while the tail is read as data)"
+
+case_studies:
+  - erc4337-2025-calldata-hash-collision
+  - erc4337-2025-erc1271-signature-reuse
+  - erc4337-2025-paymaster-unbounded-sponsorship
+  - erc4337-2025-bundler-initcode-frontrun
+  - erc4337-2026-intuition-validuntil-unsigned-metadata  # Code4rena M-01, 0xvivekd
+
+related_checklists:
+  - checklists/specialized/aa_erc4337.md
+
+related_prompts: []
+
+related_detectors:
+  - scripts/web3/detectors/erc4337_issues.py
+  - scripts/web3/specialized/aa_erc4337_hunter.py
+
+source_url: https://cantina.xyz/blog/erc-4337-security-bundlers-paymasters-signatures
+
+last_validated_against: null
+
+sunset_trigger: |
+  If class accuracy < 30% over 5 hunts (per calibration_log) — re-enter
+  learning_paths milestone "AA spec deep read" + refine hypotheses_template.
+  If EIP-7702 native abstraction supersedes ERC-4337 on mainnet — model
+  applies_when narrows to legacy AA wallets only.

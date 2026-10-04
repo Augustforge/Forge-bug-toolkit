@@ -1,0 +1,23 @@
+// Test template: PDA seed collision / empty seeds attack
+
+use anchor_lang::prelude::*;
+use solana_program_test::*;
+use solana_sdk::{signature::Keypair, signer::Signer, transaction::Transaction};
+
+#[tokio::test]
+async fn test_exploit_pda_collision() {
+    let mut program_test = ProgramTest::new("TARGET_PROGRAM", TARGET_PROGRAM_ID, None);
+    let (mut banks_client, payer, recent_blockhash) = program_test.start().await;
+
+    // Two different "users" derive the same PDA because seeds don't include user key
+    let user_a = Keypair::new();
+    let user_b = Keypair::new();
+
+    let (pda_a, _) = Pubkey::find_program_address(&[b"vault"], &TARGET_PROGRAM_ID);
+    let (pda_b, _) = Pubkey::find_program_address(&[b"vault"], &TARGET_PROGRAM_ID);
+    assert_eq!(pda_a, pda_b, "Same seeds → same PDA → collision");
+
+    // user_a initializes vault → user_b can withdraw because PDA is same
+    // TODO: instruction calls
+    // expect: user_b succeeds in withdrawing user_a's funds
+}

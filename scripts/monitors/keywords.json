@@ -1,0 +1,30 @@
+{
+  "high_severity": [
+    "exploit", "exploited", "hacked", "drained", "drain", "stolen",
+    "compromised", "breach", "attack", "incident", "emergency",
+    "$M lost", "million lost", "stolen funds", "rug pull"
+  ],
+  "medium_severity": [
+    "vulnerability", "CVE-", "patch", "advisory", "disclosure",
+    "critical bug", "security update", "high severity",
+    "paused", "pause contract", "circuit breaker"
+  ],
+  "low_severity": [
+    "audit", "report", "review", "analysis", "research",
+    "best practices", "recommendation", "guideline"
+  ],
+  "web3_specific": [
+    "smart contract", "DeFi", "DAO", "bridge", "cross-chain",
+    "stablecoin", "yield", "vault", "liquidity",
+    "reentrancy", "flash loan", "oracle", "MEV", "sandwich",
+    "private key", "mnemonic", "wallet drainer"
+  ],
+  "monetary_indicators": [
+    "\\$\\d+M", "\\$\\d+\\.\\d+M", "\\$\\d+,\\d+",
+    "million USD", "billion USD"
+  ],
+  "exclude_noise": [
+    "podcast", "podcast episode", "join us", "register now",
+    "webinar", "ama recap"
+  ]
+}

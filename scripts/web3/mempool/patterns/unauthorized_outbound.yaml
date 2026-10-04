@@ -1,0 +1,32 @@
+id: unauthorized_outbound
+description: Vault outflow without matched inbound swap/LP event — Thorchain TSS class.
+
+applies_to: [evm]
+
+match:
+  function_selectors:
+    - "0xa9059cbb"                             # transfer(address,uint256)
+    - "0x23b872dd"                             # transferFrom(address,address,uint256)
+    - "0xf3fef3a3"                             # withdraw(address,uint256)
+    - "0x70a08231"                             # balanceOf (for verification queries)
+  value_min_usd: 100000
+  # On-chain invariant check (runtime, async):
+  invariant: |
+    Outflow tx must have matching inbound swap/LP event within last N blocks.
+    If no match → vault key compromised or signing bypass exists.
+  invariant_window_blocks: 100
+
+severity: critical
+disposition: alert_only                        # critical class — never auto-act, alert + human review only
+
+threat_model: tss_validator_extraction         # cross-reference
+
+rate_limit:
+  per_pattern_per_hour: 3
+
+notes: |
+  Triggered on: Thorchain May 2026 ($10.8M) — outbounds without matched inbounds.
+  Tier 1 alert pattern — anything matching warrants immediate manual review.
+
+  Cross-references threat_model `tss_validator_extraction.yaml`. If protocol uses TSS
+  and this fires — strongly correlates with key extraction class.

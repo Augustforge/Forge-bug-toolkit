@@ -1,0 +1,103 @@
+name: Governance Capture → Uncapped Mint → AMM Drain (composite)
+id: governance_capture_mint_drain
+
+# Composite threat_model: gov-capture × uncapped mint × AMM exit-liquidity.
+# Closes the backlog "flashloan_atomic_extraction.yaml (Cream/Beanstalk class)".
+# Distinct from validator_set_quorum_integrity (M-of-N bridge quorum LOGIC) — here the
+# vote itself is legitimate, the flaw is that majority is CHEAP to acquire and the
+# execution path is ATOMIC + reaches an unconstrained mint/treasury with an AMM exit.
+
+applies_when:
+  protocol_class: [governance, dao, amm, token]
+  tags:
+    - governance
+    - dao
+    - voting
+    - aragon
+    - governor
+    - timelock
+    - minime
+    - tokenmanager
+    - mint_authority
+    - amm_exit
+  chain: [any]
+
+assumption_violated: |
+  On-chain governance silently assumes that (a) acquiring a voting majority is EXPENSIVE
+  relative to what a passed proposal can extract, and (b) between proposal creation and
+  execution there is a delay (timelock / voting period) during which the community can
+  detect and react to a malicious proposal. Both break together in the cheap-capture
+  class: when govtoken supply is tiny / illiquid, 51% is bought outright on the open
+  market for pennies (NO flash loan needed); and when the framework executes
+  create→vote→execute atomically (Aragon v1 Voting App with no separate Timelock,
+  votingDelay==0, executionDelay==0), there is zero reaction window. A proposal that
+  reaches an UNCAPPED mint (TokenManager.mint) or treasury transfer then prints/withdraws
+  value, and a legacy AMM pool (Balancer V1 / UniV2, no circuit-breaker) is the exit
+  liquidity. Token of Power 2026: supply 16,384 → bought 8,192+1 → atomic Aragon vote →
+  mint 10B TOP → dumped on Balancer V1 → 944 WETH (~$1.585M) → Tornado.
+
+actors:
+  - role: token_buyer
+    capability: Buys govtokens on the open market — legitimate. Weaponized when supply is tiny enough that 51% costs far less than the proposal can extract.
+  - role: proposer
+    capability: Any holder above proposalThreshold can create + vote a proposal — legitimate. Weaponized when the whole create→vote→execute cycle is atomic (no timelock/delay).
+
+attack_vector: |
+  - **Cheap majority**: totalSupply tiny or majority concentrated/illiquid → cost to buy
+    51% (or quorum) << value reachable by a passed proposal. No flash loan required
+    (distinguishes from Beanstalk's flash-loan variant — same exit, different vote source).
+  - **Atomic execution**: votingDelay==0 + votingPeriod instant/0 + no executionDelay /
+    no separate Timelock contract → create+vote+execute land in ONE tx/block. Aragon v1
+    Voting App is the canonical legacy instance.
+  - **Reachable mint / treasury**: the proposal calls an UNCAPPED mint (TokenManager.mint,
+    no per-block cap / oracle anchor — Cat 4.7) or moves treasury → value materializes.
+  - **AMM exit**: minted/withdrawn tokens are swapped against real value in a legacy AMM
+    pool (Balancer V1 / UniV2) lacking a circuit-breaker on sudden imbalance.
+  The four links are individually mundane; chained they are the governance-capture critical.
+
+hypotheses_template:
+  - "Compute cost-to-acquire-majority: market cost to gather quorum/51% voting power. If << the value reachable by a proposal (treasury/mint/AMM exit) → the attack is profitable WITHOUT a flash loan. Check totalSupply() — tiny/illiquid?"
+  - "Is the governance cycle atomic? votingDelay==0 && (votingPeriod instant/0) && executionDelay==0 / no separate Timelock contract → create+vote+execute in one block, no reaction window. Aragon v1 Voting App = this hole."
+  - "What CAN the proposal execute? Does it reach uncapped mint (TokenManager.mint without cap/oracle/rate-limit — Cat 4.7) or a treasury transfer? Quantify worst-case extraction."
+  - "Is there exit liquidity? An AMM pool (Balancer V1 / UniV2) with real liquidity and no circuit-breaker where minted/withdrawn tokens can be dumped?"
+  - "Legacy-framework recognition: Aragon v1 (aragonOS ACL/Voting/TokenManager), MiniMeToken, Balancer V1 — known classes without modern guards. Recognize by bytecode/ABI and walk all 4 links."
+
+severity_floor: high
+severity_ceiling: critical
+
+case_studies:
+  - "top-2026 — Token of Power: Aragon v1 no-timelock atomic governance + supply 16,384 (bought 51% on market, NO flash loan) + uncapped TokenManager.mint (10B) + Balancer V1 exit → $1.585M (09.06.2026)"
+  - "beanstalk-2022 — same exit class (governance → mint/treasury → AMM drain) but via FLASH-LOAN voting power → $182M"
+  - "drift-2026 — governance attack class ($285M-risk), reachable privileged action via vote"
+
+related_checklists:
+  - scripts/web3/checklists/governance.md
+  - scripts/web3/checklists/access_control.md
+
+related_prompts:
+  - scripts/web3/prompts/worst_admin_action.md
+
+last_validated_against:
+  date: 2026-06-10
+  targets: []
+  outcome: pending_first_use
+
+executable_checks:
+  - type: grep
+    pattern: "function\\s+mint\\s*\\("
+    languages: [sol]
+    severity_if_match: high
+    note: "Mint function — verify supply cap / oracle anchor / per-block rate-limit AND whether a governance proposal can reach it (Cat 4.7). Uncapped + proposal-reachable = TOP/Beanstalk leg."
+  - type: grep
+    pattern: "votingDelay|executionDelay|MIN_DELAY|TimelockController|GovernorTimelock"
+    languages: [sol]
+    severity_if_match: medium
+    note: "Presence of delay primitives. ABSENCE across the governor (no Timelock, votingDelay 0) = atomic create+vote+execute window. Aragon v1 Voting App has no separate timelock by default."
+  - type: grep
+    pattern: "MiniMeToken|TokenManager|aragonOS|Voting|ACL"
+    languages: [sol]
+    severity_if_match: medium
+    note: "Legacy Aragon v1 stack — known atomic-governance + uncapped-mint surface (TOP class). Flag for full 4-link walk."
+  - type: cast_call
+    cmd: "cast call <govtoken> 'totalSupply()(uint256)' --rpc-url $RPC"
+    note: "Tiny totalSupply = cheap 51% acquisition. Compare market cost of 51% vs value reachable by proposal (treasury/mint/AMM pool)."

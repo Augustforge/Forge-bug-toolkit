@@ -1,0 +1,78 @@
+name: TSS Validator Key Extraction
+id: tss_validator_extraction
+
+applies_when:
+  protocol_class: [bridge, mpc-custody, aggregator]
+  tags: [tss, mpc, gg18, gg20, threshold_signature]
+  chain: [any]
+
+negative_match:
+  tags: [tss_lib_v0_71_0_or_higher_full_patch]
+
+assumption_violated: |
+  Bonded validator participating in N legitimate signing ceremonies cannot
+  reconstruct vault private key offline. Protocol assumes honest behavior
+  during multi-round MPC protocols (GG18/GG20/FROST), with ZK proofs
+  preventing share leakage.
+
+actors:
+  - role: bonded_validator
+    capability: Joins active signing set after bonding, participates in keygen + signing ceremonies as legitimate member
+  - role: malicious_paillier_modulus_provider
+    capability: Submits adversarial Paillier modulus during keygen — bypasses biprime check if not enforced
+
+attack_vector: |
+  Malicious bonded validator sends malformed ZK proofs (α-shuffle) or uses
+  Paillier moduli with small factors (c-split/c-guess/BitForge) during signing
+  ceremonies. Honest nodes leak partial key shares incrementally. After N rounds
+  attacker reconstructs vault private key offline. No protocol abort during
+  attack — stealth feature. Then signs unauthorized outbound transactions.
+
+hypotheses_template:
+  - "If protocol uses GG18/GG20 tss-lib fork, verify Paillier biprime check + small-factor sieve in ALL paths (keygen + signing + re-sharing). Single missing path = exploitable."
+  - "If past paid bounty disclosed TSSHOCK variant (α-shuffle), verify sibling variants (c-split, c-guess) explicitly patched. Bounty fixes are often narrow — the class remains."
+  - "If validator can churn-in and immediately sign with no cooldown latency, malicious-bonded scenario is open. Verify minimum waiting period exists."
+  - "If on-chain vault outflow events exist without matched inbound swap/LP event, key compromise or signing bypass present. Run invariant: Σ(authorized_inflows) - Σ(authorized_outflows) == current_balance per block."
+  - "If ZK proof iteration count is configurable (env var, config file) — attacker can downgrade to <128. Verify hardcoded ≥128."
+
+severity_floor: high
+severity_ceiling: critical
+
+case_studies:
+  - thorchain_2026
+  - multichain_2022_2023
+  - bitforge_cve_2023_33241
+
+related_checklists:
+  - scripts/web3/checklists/specialized/tss_mpc.md
+
+related_prompts:
+  - scripts/web3/prompts/validator_extracts.md
+  - scripts/web3/prompts/bonded_actor_threat.md
+
+last_validated_against:
+  date: 2026-05-18
+  targets: []
+  outcome: pending_first_use
+
+executable_checks:
+  - type: grep
+    pattern: "tss-lib|PaillierSK|GG18|GG20|dlnproof|modproof|facproof"
+    languages: [go, rust]
+    severity_if_match: medium
+    note: "Surface indicator — TSS infrastructure present, deep review needed"
+  - type: grep
+    pattern: "(const|var)\\s+(Iterations|ProofIters|ZKIters?|ZKProofIterations)\\s*=\\s*\\d+"
+    languages: [go, rust]
+    severity_if_match: medium
+    note: "ZK proof iteration constants — manually verify each ≥128 for security (dlnproof=128 OK, modproof=80 spec, paillier proof iters vary)"
+  - type: grep
+    pattern: "SkipPaillier|skipBiprime|noBiprimeCheck|disableCheck|disableValidation"
+    languages: [go, rust]
+    severity_if_match: high
+    note: "Bypass config flag for Paillier/ZK validation — instant Critical if present and used in production paths"
+  - type: grep
+    pattern: "BiprimeCheck|isBiprime|checkBiprime|preParams\\.Validate|ValidateWithProof"
+    languages: [go, rust]
+    severity_if_match: low
+    note: "Biprime check present — surface for review (verify called in ALL paths: keygen + signing + resharing)"
